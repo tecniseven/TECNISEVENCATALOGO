@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
-    <!-- FAVICON MULTIFORMATO PARA LA PESTAÑA -->
-    <link rel="icon" type="image/png" href="Logo.png" id="favicon-link">
+    <!-- FAVICON DEDICADO CON RESPALDO -->
+    <link rel="icon" type="image/png" href="favicon.png" id="favicon-link">
     <script>
-        // Verificación de respaldo para favicon según caso de letra
         const imgFavicon = new Image();
-        imgFavicon.src = 'Logo.png';
+        imgFavicon.src = 'favicon.png';
         imgFavicon.onerror = () => {
             const fav = document.getElementById('favicon-link');
-            if (fav) fav.href = 'logo.png';
+            if (fav) fav.href = 'Logo.png';
         };
     </script>
 
@@ -70,7 +69,6 @@
         let productos = [];
         let ordenInvertido = false;
 
-        // Escuchar datos en la nube y ocultar la Pantalla de Carga
         onValue(productosRef, (snapshot) => {
             const data = snapshot.val();
             productos = [];
@@ -81,7 +79,7 @@
             }
             renderizar();
 
-            // Transición suave para ocultar la pantalla de carga (Loading Screen)
+            // Ocultar pantalla de carga suavemente
             setTimeout(() => {
                 const loader = document.getElementById('loading-screen');
                 if (loader) {
@@ -283,7 +281,7 @@
             }
         };
 
-        // --- PEGADO INTELIGENTE DE PROVEEDORES ---
+        // --- PEGADO INTELIGENTE DE PROVEEDORES (LIMPIO Y AUTOMÁTICO) ---
         window.importarPegado = () => {
             const texto = document.getElementById('texto-pegado').value.trim();
             if (!texto) {
@@ -368,7 +366,6 @@
         <h2 class="text-2xl font-black tracking-wider text-white mb-2">TECNISEVEN</h2>
         <p class="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-6">Sincronizando Base de Datos Realtime...</p>
         
-        <!-- Barra de progreso futurista -->
         <div class="w-64 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
             <div class="h-full bg-[#2323ff] loading-progress shadow-[0_0_10px_#2323ff]"></div>
         </div>
@@ -420,7 +417,7 @@
         </div>
     </div>
 
-    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE EXCEL / PROVEEDOR -->
+    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE PROVEEDOR -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
@@ -432,7 +429,7 @@
             <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
             <div class="flex justify-end gap-3">
                 <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
-                <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
+                <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
             </div>
         </div>
     </div>
