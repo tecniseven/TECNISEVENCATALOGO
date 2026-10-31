@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TECNISEVEN - Catálogo en la Nube</title>
+    
+    <!-- FAVICON PARA LA PESTAÑA DEL NAVEGADOR -->
+    <link rel="icon" type="image/png" href="Logo.png" onerror="this.href='logo.png';">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .neon-glow {
@@ -246,7 +250,7 @@
             }
         };
 
-        // --- FUNCIÓN DE PARSEO Y LIMPIEZA AUTOMÁTICA DE NOMBRES Y CATEGORÍAS ---
+        // --- PEGADO INTELIGENTE DE PROVEEDOR (LIMPIO) ---
         window.importarPegado = () => {
             const texto = document.getElementById('texto-pegado').value.trim();
             if (!texto) {
@@ -261,22 +265,18 @@
                 let linea = lineas[i].trim();
                 if (!linea) continue;
 
-                // Separar por tabulaciones o comas
                 let columnas = linea.split('\t').map(c => c.trim()).filter(c => c !== '');
                 if (columnas.length < 2) {
                     columnas = linea.split(',').map(c => c.trim()).filter(c => c !== '');
                 }
 
                 if (columnas.length >= 2) {
-                    // Extraer el precio (último elemento)
                     let precioRaw = columnas[columnas.length - 1];
                     let base = parseFloat(precioRaw.replace(/[$€\s]/g, '').replace(',', '.')) || 0;
 
-                    // Unir la descripción (omitiendo la marca si viene repetida en la penúltima columna)
                     let partesNombre = columnas.slice(0, columnas.length - 1);
                     let textoOriginal = partesNombre.join(' ');
 
-                    // 1. Detectar Categoría
                     let textLower = textoOriginal.toLowerCase();
                     let categoria = "General";
                     if (textLower.includes('tarjeta') || textLower.includes('rtx') || textLower.includes('gtx') || textLower.includes('radeon') || textLower.includes('5060') || textLower.includes('4060') || textLower.includes('4070') || textLower.includes('4080') || textLower.includes('4090')) {
@@ -291,7 +291,6 @@
                         categoria = "Componentes";
                     }
 
-                    // 2. Limpieza Inteligente del Nombre
                     let nombreLimpio = textoOriginal
                         .replace(/TARJETA\s+GRAFICA/gi, '')
                         .replace(/TARJETA\s+DE\s+VIDEO/gi, '')
@@ -299,7 +298,6 @@
                         .replace(/LAPTOP/gi, '')
                         .trim();
 
-                    // Si empieza por números de modelo gráfica (ej. "5060TI 16GB ASUS DUAL"), agregarle el prefijo RTX
                     if (/^\d{4}/.test(nombreLimpio)) {
                         nombreLimpio = 'RTX ' + nombreLimpio;
                     }
@@ -381,7 +379,7 @@
                 <span>📋</span> Pegar Lista de Proveedor
             </h3>
             <p class="text-slate-400 text-sm mb-4">
-                Pega tus datos directamente (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema limpiará palabras sobrantes como "TARJETA GRAFICA" y asignará la categoría de forma automática:
+                Pega tus datos directamente (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema limpiará palabras sobrantes y asignará la categoría de forma automática:
             </p>
             <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
             <div class="flex justify-end gap-3">
