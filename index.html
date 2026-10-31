@@ -26,7 +26,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // CONFIGURACIÓN DE TUS LLAVES REALES DE FIREBASE
+        // TUS LLAVES REALES DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCYTZrTBFxhwr0Pz9v7oFXNQLKJJPsA7H4",
             authDomain: "tecniseven-catalogo.firebaseapp.com",
@@ -45,7 +45,7 @@
         let productos = [];
         let ordenInvertido = false;
 
-        // Escuchar cambios en la nube en tiempo real desde cualquier dispositivo
+        // Escuchar cambios en la nube en tiempo real
         onValue(productosRef, (snapshot) => {
             const data = snapshot.val();
             productos = [];
@@ -91,7 +91,7 @@
             tbody.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No hay productos en la nube. ¡Agrega uno nuevo!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No hay productos en la nube. ¡Agrega uno o importa un Excel/CSV!</td></tr>`;
                 return;
             }
 
@@ -201,6 +201,65 @@
             ordenInvertido = !ordenInvertido;
             window.renderizar();
         };
+
+        // --- AUTOMATIZACIÓN: EXPORTAR A CSV (EXCEL) ---
+        window.exportarCSV = () => {
+            if (productos.length === 0) {
+                alert("No hay productos para exportar.");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,SKU,Nombre,Categoria,PrecioBase,Margen\n";
+            productos.forEach(p => {
+                let fila = `"${p.sku || ''}","${p.nombre || ''}","${p.categoria || ''}",${p.base || 0},${p.margen || 0}`;
+                csvContent += fila + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "catalogo_tecniseven.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // --- AUTOMATIZACIÓN: IMPORTAR DESDE CSV (EXCEL) ---
+        window.importarCSV = (event) => {
+            const archivo = event.target.files[0];
+            if (!archivo) return;
+
+            const lector = new FileReader();
+            lector.onload = function(e) {
+                const contenido = e.target.result;
+                const lineas = contenido.split("\n");
+                let contadorImportados = 0;
+
+                // Empezamos desde i = 1 para saltar la cabecera
+                for (let i = 1; i < lineas.length; i++) {
+                    const linea = lineas[i].trim();
+                    if (!linea) continue;
+
+                    // Separar por comas respetando comillas simples o dobles básicas
+                    const columnas = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linea.split(',');
+                    if (columnas.length >= 5) {
+                        const sku = columnas[0].replace(/"/g, '').trim();
+                        const nombre = columnas[1].replace(/"/g, '').trim();
+                        const categoria = columnas[2].replace(/"/g, '').trim();
+                        const base = parseFloat(columnas[3]) || 0;
+                        const margen = parseFloat(columnas[4]) || 0;
+
+                        const id = 'prod_' + Date.now() + '_' + i;
+                        const productoNuevo = { id, sku, nombre, categoria, base, margen };
+                        
+                        // Guardar directo en Firebase
+                        window.guardarProductoNube(productoNuevo);
+                        contadorImportados++;
+                    }
+                }
+                alert(`¡Se han importado ${contadorImportados} productos a la nube con éxito!`);
+                event.target.value = ''; // Limpiar input
+            };
+            lector.readAsText(archivo);
+        };
     </script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
@@ -214,9 +273,20 @@
                         TECNISEVEN <span style="color: #2323ff;" class="font-light">| Catálogo Nube</span>
                     </h1>
                 </div>
-                <p class="text-slate-400 mt-2">Sincronización en tiempo real entre celular y computadora mediante Firebase.</p>
+                <p class="text-slate-400 mt-2">Sincronización en tiempo real con automatización de archivos Excel/CSV.</p>
             </div>
-            <div class="flex gap-3">
+            
+            <!-- Botones de Acción -->
+            <div class="flex flex-wrap gap-3">
+                <button onclick="exportarCSV()" class="bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-lg font-medium transition flex items-center gap-2 cursor-pointer">
+                    📥 Exportar Excel
+                </button>
+                
+                <label class="bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-lg font-medium transition flex items-center gap-2 cursor-pointer">
+                    📤 Importar Excel
+                    <input type="file" accept=".csv" onchange="importarCSV(event)" class="hidden">
+                </label>
+
                 <button onclick="agregarProducto()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition flex items-center gap-2 shadow-lg neon-glow cursor-pointer">
                     + Nuevo Producto
                 </button>
@@ -230,7 +300,7 @@
                 <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar en la nube por producto, SKU..." class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2 w-full text-white text-sm focus:border-[#2323ff]">
             </div>
             <div class="text-slate-400 text-sm">
-                Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos
+                Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos en la nube
             </div>
         </div>
 
