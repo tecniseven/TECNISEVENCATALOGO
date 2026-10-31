@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
-    <!-- FAVICON CONFIGURADO PARA TU ARCHIVO JPEG -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=5" id="favicon-link">
+    <!-- FAVICON -->
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=6" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -37,7 +37,6 @@
             border: 2px solid #2323ff !important;
         }
         
-        /* Animación y efecto de rayos de energía en la barra de carga */
         @keyframes electric-bar {
             0% { background-position: 0% 50%; width: 10%; }
             50% { background-position: 100% 50%; width: 80%; }
@@ -74,6 +73,19 @@
         let productos = [];
         let ordenInvertido = false;
 
+        // Función global de seguridad para quitar el loader
+        window.ocultarLoader = () => {
+            const loader = document.getElementById('loading-screen');
+            if (loader && loader.style.display !== 'none') {
+                loader.style.opacity = '0';
+                loader.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => loader.style.display = 'none', 400);
+            }
+        };
+
+        // SEGURO ANTI-BLOQUEO: Si en 2.5 segundos Firebase no responde, se quita solo
+        setTimeout(window.ocultarLoader, 2500);
+
         onValue(productosRef, (snapshot) => {
             const data = snapshot.val();
             productos = [];
@@ -83,15 +95,7 @@
                 });
             }
             renderizar();
-
-            setTimeout(() => {
-                const loader = document.getElementById('loading-screen');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    loader.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => loader.style.display = 'none', 500);
-                }
-            }, 700);
+            window.ocultarLoader();
         });
 
         window.guardarProductoNube = (producto) => {
@@ -361,16 +365,14 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 font-sans relative">
 
-    <!-- PANTALLA DE CARGA CYBERPUNK CON LOGO MÁS GRANDE Y RAYOS DE ENERGÍA -->
+    <!-- PANTALLA DE CARGA CYBERPUNK CON SEGURO ANTI-BLOQUEO -->
     <div id="loading-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
         <div class="relative mb-8">
-            <!-- Logo con tamaño ampliado y brillo potente -->
             <img src="Logo.png" alt="Cargando TECNISEVEN" class="h-36 sm:h-44 w-auto object-contain rounded-3xl bg-slate-900 border-2 border-[#2323ff] p-5 neon-glow-strong animate-pulse" onerror="this.onerror=null; this.src='logo.png';">
         </div>
         <h2 class="text-3xl font-black tracking-widest text-white mb-2 uppercase">TECNISEVEN</h2>
         <p class="text-cyan-400 text-sm font-mono tracking-widest uppercase mb-8">Cargando Sistema & Sincronizando Datos...</p>
         
-        <!-- Barra de carga con efecto de rayos eléctricos y neón -->
         <div class="w-80 h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
             <div class="h-full rounded-full electric-progress"></div>
         </div>
@@ -388,3 +390,55 @@
                     <p class="text-slate-400 mt-1 text-xs sm:text-sm">Control avanzado de precios y sincronización en tiempo real.</p>
                 </div>
             </div>
+            
+            <!-- Botones de Acción -->
+            <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
+                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                    📥 Exportar
+                </button>
+                
+                <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                    📋 Pegar de Proveedor
+                </button>
+
+                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm">
+                    + Nuevo Producto
+                </button>
+            </div>
+        </div>
+
+        <!-- Buscador -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+            <div class="relative w-full sm:w-96">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU..." class="bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-sm focus:border-[#2323ff]">
+            </div>
+            <div class="text-slate-300 text-sm text-right w-full sm:w-auto">
+                Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
+            </div>
+        </div>
+
+        <!-- Contenedor Principal de Productos -->
+        <div id="lista-productos">
+            <!-- Carga dinámica -->
+        </div>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE PROVEEDOR -->
+    <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <span>📋</span> Pegar Lista de Proveedor
+            </h3>
+            <p class="text-slate-400 text-sm mb-4">
+                Pega tus datos directamente (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema limpiará palabras sobrantes y asignará la categoría de forma automática:
+            </p>
+            <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
+                <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
