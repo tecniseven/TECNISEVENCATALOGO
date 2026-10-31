@@ -94,7 +94,7 @@
             container.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tus listas de proveedores aquí!</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tu lista aquí!</div>`;
                 return;
             }
 
@@ -246,7 +246,7 @@
             }
         };
 
-        // --- PEGADO INTELIGENTE LIMPIO (SIN SEPARAR MARCA) ---
+        // --- FUNCIÓN DE PARSEO Y LIMPIEZA AUTOMÁTICA DE NOMBRES Y CATEGORÍAS ---
         window.importarPegado = () => {
             const texto = document.getElementById('texto-pegado').value.trim();
             if (!texto) {
@@ -268,35 +268,49 @@
                 }
 
                 if (columnas.length >= 2) {
-                    // El último elemento siempre es el precio
+                    // Extraer el precio (último elemento)
                     let precioRaw = columnas[columnas.length - 1];
                     let base = parseFloat(precioRaw.replace(/[$€\s]/g, '').replace(',', '.')) || 0;
 
-                    // Todo lo anterior al precio se une en una sola descripción limpia (incluyendo marca si la trae)
+                    // Unir la descripción (omitiendo la marca si viene repetida en la penúltima columna)
                     let partesNombre = columnas.slice(0, columnas.length - 1);
-                    let nombreLimpio = partesNombre.join(' ');
+                    let textoOriginal = partesNombre.join(' ');
 
-                    let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
-
-                    let catLower = nombreLimpio.toLowerCase();
+                    // 1. Detectar Categoría
+                    let textLower = textoOriginal.toLowerCase();
                     let categoria = "General";
-                    if (catLower.includes('tarjeta') || catLower.includes('rtx') || catLower.includes('gtx') || catLower.includes('radeon') || catLower.includes('ti')) {
+                    if (textLower.includes('tarjeta') || textLower.includes('rtx') || textLower.includes('gtx') || textLower.includes('radeon') || textLower.includes('5060') || textLower.includes('4060') || textLower.includes('4070') || textLower.includes('4080') || textLower.includes('4090')) {
                         categoria = "Tarjetas Gráficas";
-                    } else if (catLower.includes('monitor') || catLower.includes('pantalla')) {
+                    } else if (textLower.includes('monitor') || textLower.includes('pantalla')) {
                         categoria = "Monitores";
-                    } else if (catLower.includes('laptop') || catLower.includes('portatil') || catLower.includes('notebook')) {
+                    } else if (textLower.includes('laptop') || textLower.includes('portatil') || textLower.includes('notebook')) {
                         categoria = "Portátiles";
-                    } else if (catLower.includes('teclado') || catLower.includes('mouse') || catLower.includes('audifono') || catLower.includes('headset')) {
+                    } else if (textLower.includes('teclado') || textLower.includes('mouse') || textLower.includes('audifono') || textLower.includes('headset')) {
                         categoria = "Periféricos";
-                    } else if (catLower.includes('procesador') || catLower.includes('cpu') || catLower.includes('ram') || catLower.includes('memoria') || catLower.includes('ssd') || catLower.includes('disco')) {
+                    } else if (textLower.includes('procesador') || textLower.includes('cpu') || textLower.includes('ram') || textLower.includes('memoria') || textLower.includes('ssd') || textLower.includes('disco')) {
                         categoria = "Componentes";
                     }
+
+                    // 2. Limpieza Inteligente del Nombre
+                    let nombreLimpio = textoOriginal
+                        .replace(/TARJETA\s+GRAFICA/gi, '')
+                        .replace(/TARJETA\s+DE\s+VIDEO/gi, '')
+                        .replace(/MONITOR/gi, '')
+                        .replace(/LAPTOP/gi, '')
+                        .trim();
+
+                    // Si empieza por números de modelo gráfica (ej. "5060TI 16GB ASUS DUAL"), agregarle el prefijo RTX
+                    if (/^\d{4}/.test(nombreLimpio)) {
+                        nombreLimpio = 'RTX ' + nombreLimpio;
+                    }
+
+                    let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
 
                     let id = 'prod_' + Date.now() + '_' + i;
                     let productoNuevo = { 
                         id, 
                         sku, 
-                        nombre: nombreLimpio || 'Producto Proveedor', 
+                        nombre: nombreLimpio || textoOriginal, 
                         categoria, 
                         base, 
                         margen: 20, 
@@ -307,7 +321,7 @@
                     contadorImportados++;
                 }
             }
-            alert(`¡Se han importado ${contadorImportados} productos con éxito!`);
+            alert(`¡Se han importado ${contadorImportados} productos limpios a la nube!`);
             document.getElementById('texto-pegado').value = '';
             toggleModalImportacion(false);
         };
@@ -367,10 +381,9 @@
                 <span>📋</span> Pegar Lista de Proveedor
             </h3>
             <p class="text-slate-400 text-sm mb-4">
-                Copia las filas de la lista de tu proveedor y pégalas aquí (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema tomará todo el texto como nombre y detectará el precio automáticamente:
+                Pega tus datos directamente (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema limpiará palabras sobrantes como "TARJETA GRAFICA" y asignará la categoría de forma automática:
             </p>
-            <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880
-LAPTOP GAMER PRO    MSI    $ 1250" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
+            <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
             <div class="flex justify-end gap-3">
                 <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
                 <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
