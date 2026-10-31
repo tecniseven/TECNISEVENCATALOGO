@@ -89,24 +89,18 @@
             const contador = document.getElementById('contador-productos');
             if (contador) contador.innerText = listaFiltrada.length;
 
-            const tbody = document.getElementById('tabla-productos');
-            const containerMovil = document.getElementById('tarjetas-movil');
-            
-            if (!tbody || !containerMovil) return;
-            
-            tbody.innerHTML = '';
-            containerMovil.innerHTML = '';
+            const container = document.getElementById('lista-productos');
+            if (!container) return;
+            container.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                const mensajeVacio = `<div class="p-8 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o importa un archivo Excel!</div>`;
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500 font-medium text-base">No hay productos en la nube.</td></tr>`;
-                containerMovil.innerHTML = mensajeVacio;
+                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tus listas de Excel aquí!</div>`;
                 return;
             }
 
             listaFiltrada.forEach((p) => {
                 const final = Number(p.base || 0) * (1 + (Number(p.margen || 0) / 100));
-                const ultimaMod = p.ultimaModificacion ? `<span class="block text-xs text-cyan-400/80 mt-1 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="block text-xs text-slate-500 mt-1 font-mono">🕒 Sin cambios recientes</span>`;
+                const ultimaMod = p.ultimaModificacion ? `<span class="text-xs text-cyan-400/80 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-xs text-slate-500 font-mono">🕒 Sin cambios recientes</span>`;
 
                 let optionsHTML = '';
                 const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Componentes', 'Tarjetas Gráficas', 'Accesorios', 'General'];
@@ -115,71 +109,30 @@
                     optionsHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
                 });
 
-                // --- 1. RENDERIZAR VISTA DE ESCRITORIO (TABLA) ---
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-800/40 transition group border-b border-slate-800/60';
-                tr.innerHTML = `
-                    <td class="p-4 font-mono font-medium text-base whitespace-nowrap" style="color: #2323ff;">${p.sku || ''}</td>
-                    <td class="p-4 min-w-[220px]">
-                        <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 w-full text-white py-1 transition font-medium text-base">
-                        ${ultimaMod}
-                    </td>
-                    <td class="p-4 whitespace-nowrap">
-                        <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-900 border border-slate-800 rounded px-3 py-2 text-slate-200 text-base">
-                            ${optionsHTML}
-                        </select>
-                    </td>
-                    <td class="p-4 whitespace-nowrap">
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 text-slate-400 font-mono text-base">$</span>
-                            <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-8 pr-3 py-2 w-36 text-white font-mono text-base">
-                        </div>
-                    </td>
-                    <td class="p-4 whitespace-nowrap">
-                        <div class="relative flex items-center">
-                            <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-3 pr-8 py-2 w-28 text-white font-mono text-base">
-                            <span class="text-slate-500 absolute right-3 text-base">%</span>
-                        </div>
-                    </td>
-                    <td class="p-4 whitespace-nowrap">
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 font-bold text-base" style="color: #2323ff;">$</span>
-                            <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded pl-8 pr-3 py-2 w-36 font-mono font-bold text-base neon-glow">
-                        </div>
-                    </td>
-                    <td class="p-4 text-center whitespace-nowrap">
-                        <button onclick="eliminarProducto('${p.id}')" class="text-slate-500 hover:text-rose-400 transition p-2 cursor-pointer text-lg" title="Eliminar producto">
-                            ✕
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-
-                // --- 2. RENDERIZAR VISTA MÓVIL (TARJETAS TÁCTILES) ---
                 const card = document.createElement('div');
-                card.className = 'bg-slate-900/80 border border-slate-800 rounded-2xl p-4 mb-4 shadow-xl backdrop-blur-md relative';
+                card.className = 'bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition rounded-2xl p-5 mb-4 shadow-xl backdrop-blur-md';
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3 border-b border-slate-800/80 pb-2">
-                        <div>
-                            <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-[#2323ff]/20 text-[#2323ff] border border-[#2323ff]/30">${p.sku || ''}</span>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <span class="font-mono text-sm font-bold px-3 py-1 rounded-lg bg-[#2323ff]/15 text-[#2323ff] border border-[#2323ff]/30">${p.sku || ''}</span>
+                            <div class="w-full sm:w-80">
+                                <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-white text-base font-semibold focus:border-[#2323ff]" placeholder="Nombre del producto">
+                            </div>
                         </div>
-                        <button onclick="eliminarProducto('${p.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-base font-bold">✕ Eliminar</button>
+                        <div class="flex items-center justify-between w-full sm:w-auto gap-4">
+                            ${ultimaMod}
+                            <button onclick="eliminarProducto('${p.id}')" class="text-slate-500 hover:text-rose-400 transition p-2 cursor-pointer text-sm font-bold bg-slate-950 rounded-lg border border-slate-800 px-3">✕ Eliminar</button>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="text-xs text-slate-400 block mb-1">Nombre del Producto / Modelo</label>
-                        <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg w-full text-white px-3 py-2 text-base font-medium">
-                        ${ultimaMod}
-                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Categoría</label>
+                            <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 text-base w-full">
+                                ${optionsHTML}
+                            </select>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="text-xs text-slate-400 block mb-1">Categoría</label>
-                        <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg w-full px-3 py-2 text-slate-200 text-base">
-                            ${optionsHTML}
-                        </select>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 mb-2">
                         <div>
                             <label class="text-xs text-slate-400 block mb-1">Precio Base ($)</label>
                             <div class="relative flex items-center">
@@ -187,6 +140,7 @@
                                 <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-base">
                             </div>
                         </div>
+
                         <div>
                             <label class="text-xs text-slate-400 block mb-1">Margen Ind. (%)</label>
                             <div class="relative flex items-center">
@@ -194,17 +148,17 @@
                                 <span class="absolute right-3 text-slate-500">%</span>
                             </div>
                         </div>
-                    </div>
 
-                    <div>
-                        <label class="text-xs text-cyan-400 font-semibold block mb-1">Precio Final Calculado ($)</label>
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 font-bold" style="color: #2323ff;">$</span>
-                            <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2.5 w-full font-mono font-bold text-lg neon-glow">
+                        <div>
+                            <label class="text-xs text-cyan-400 font-semibold block mb-1">Precio Final ($)</label>
+                            <div class="relative flex items-center">
+                                <span class="absolute left-3 font-bold" style="color: #2323ff;">$</span>
+                                <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-base neon-glow">
+                            </div>
                         </div>
                     </div>
                 `;
-                containerMovil.appendChild(card);
+                container.appendChild(card);
             });
         };
 
@@ -265,11 +219,6 @@
             }
         };
 
-        window.cambiarOrden = () => {
-            ordenInvertido = !ordenInvertido;
-            window.renderizar();
-        };
-
         window.exportarCSV = () => {
             if (productos.length === 0) {
                 alert("No hay productos para exportar.");
@@ -289,116 +238,132 @@
             document.body.removeChild(link);
         };
 
-        window.importarCSV = (event) => {
-            const archivo = event.target.files[0];
-            if (!archivo) return;
+        // --- FUNCIÓN PARA ABRIR/CERRAR MODAL DE PEGADO ---
+        window.toggleModalImportacion = (mostrar) => {
+            const modal = document.getElementById('modal-importar');
+            if (modal) {
+                if (mostrar) modal.classList.remove('hidden');
+                else modal.classList.add('hidden');
+            }
+        };
 
-            const lector = new FileReader();
-            lector.onload = function(e) {
-                const contenido = e.target.result;
-                let lineas = contenido.split("\n");
-                let contadorImportados = 0;
+        // --- PROCESAR EL TEXTO PEGADO DESDE EXCEL ---
+        window.importarPegado = () => {
+            const texto = document.getElementById('texto-pegado').value.trim();
+            if (!texto) {
+                alert("Por favor pega los datos de Excel en el cuadro de texto.");
+                return;
+            }
 
-                for (let i = 1; i < lineas.length; i++) {
-                    let linea = lineas[i].trim();
-                    if (!linea) continue;
+            const lineas = texto.split("\n");
+            let contadorImportados = 0;
+            let inicio = 0;
 
-                    let columnas = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linea.split(',');
-                    if (columnas.length >= 5) {
-                        let sku = columnas[0].replace(/"/g, '').trim();
-                        let nombre = columnas[1].replace(/"/g, '').trim();
-                        let categoria = columnas[2].replace(/"/g, '').trim();
-                        let base = parseFloat(columnas[3]) || 0;
-                        let margen = parseFloat(columnas[4]) || 0;
+            // Si la primera línea tiene encabezados, los saltamos automáticamente
+            if (lineas[0].toLowerCase().includes('sku') || lineas[0].toLowerCase().includes('nombre')) {
+                inicio = 1;
+            }
 
-                        let id = 'prod_' + Date.now() + '_' + i;
-                        let productoNuevo = { 
-                            id, 
-                            sku, 
-                            nombre, 
-                            categoria, 
-                            base, 
-                            margen, 
-                            ultimaModificacion: obtenerFechaActual() 
-                        };
-                        
-                        window.guardarProductoNube(productoNuevo);
-                        contadorImportados++;
-                    }
+            for (let i = inicio; i < lineas.length; i++) {
+                let linea = lineas[i].trim();
+                if (!linea) continue;
+
+                // Separar por tabulaciones (copiar directo de Excel) o comas
+                let columnas = linea.split('\t');
+                if (columnas.length < 4) {
+                    columnas = linea.split(',');
                 }
-                alert(`¡Se han importado ${contadorImportados} productos a la nube con éxito!`);
-                event.target.value = '';
-            };
-            lector.readAsText(archivo);
+
+                if (columnas.length >= 4) {
+                    let sku = columnas[0].replace(/"/g, '').trim();
+                    let nombre = columnas[1].replace(/"/g, '').trim();
+                    let categoria = columnas[2].replace(/"/g, '').trim();
+                    let base = parseFloat(columnas[3].replace('$', '').replace(',', '.')) || 0;
+                    let margen = columnas[4] ? parseFloat(columnas[4]) : 20;
+
+                    let id = 'prod_' + Date.now() + '_' + i;
+                    let productoNuevo = { 
+                        id, 
+                        sku, 
+                        nombre, 
+                        categoria, 
+                        base, 
+                        margen, 
+                        ultimaModificacion: obtenerFechaActual() 
+                    };
+                    
+                    window.guardarProductoNube(productoNuevo);
+                    contadorImportados++;
+                }
+            }
+            alert(`¡Se han importado ${contadorImportados} productos a la nube con éxito!`);
+            document.getElementById('texto-pegado').value = '';
+            toggleModalImportacion(false);
         };
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 font-sans">
-    <div class="max-w-6xl mx-auto">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 font-sans">
+    <div class="max-w-5xl mx-auto">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4 border-b border-slate-800 pb-6">
-            <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 border-b border-slate-800 pb-6">
+            <div class="flex items-center gap-4 w-full md:w-auto">
                 <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-900 border border-[#2323ff]/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                         TECNISEVEN <span style="color: #2323ff;" class="font-light">| Catálogo Nube</span>
                     </h1>
-                    <p class="text-slate-400 mt-1 text-xs sm:text-base">Control de precios en tiempo real con diseño adaptable.</p>
+                    <p class="text-slate-400 mt-1 text-xs sm:text-sm">Control avanzado de precios y sincronización en tiempo real.</p>
                 </div>
             </div>
             
             <!-- Botones de Acción -->
-            <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
-                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-3 sm:px-4 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base shadow-md">
-                    📥 Exportar Excel
+            <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
+                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                    📥 Exportar
                 </button>
                 
-                <label class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-3 sm:px-4 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base shadow-md">
-                    📤 Importar Excel
-                    <input type="file" accept=".csv" onchange="importarCSV(event)" class="hidden">
-                </label>
+                <!-- BOTÓN PARA ABRIR EL MODAL DE PEGADO DIRECTO -->
+                <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                    📋 Pegar de Excel
+                </button>
 
-                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm sm:text-base">
+                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm">
                     + Nuevo Producto
                 </button>
             </div>
         </div>
 
         <!-- Buscador -->
-        <div class="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between bg-slate-900/40 p-3 sm:p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
             <div class="relative w-full sm:w-96">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-base">🔍</span>
-                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU..." class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 w-full text-white text-sm sm:text-base focus:border-[#2323ff]">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU..." class="bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-sm focus:border-[#2323ff]">
             </div>
-            <div class="text-slate-300 text-sm sm:text-base text-right w-full sm:w-auto">
+            <div class="text-slate-300 text-sm text-right w-full sm:w-auto">
                 Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
             </div>
         </div>
 
-        <!-- VISTA MÓVIL: Tarjetas individuales (Se muestra solo en celulares y tablets pequeñas) -->
-        <div id="tarjetas-movil" class="block md:hidden">
-            <!-- Carga dinámica móvil -->
+        <!-- Contenedor Principal de Productos -->
+        <div id="lista-productos">
+            <!-- Carga dinámica -->
         </div>
+    </div>
 
-        <!-- VISTA ESCRITORIO: Tabla clásica (Se muestra solo en pantallas medianas y grandes) -->
-        <div class="hidden md:block bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-900/90 uppercase text-xs tracking-wider border-b border-slate-800" style="color: #2323ff;">
-                            <th class="p-4">SKU</th>
-                            <th class="p-4 cursor-pointer hover:text-white transition" onclick="cambiarOrden()">Producto / Modelo ↕</th>
-                            <th class="p-4">Categoría</th>
-                            <th class="p-4">Precio Base ($)</th>
-                            <th class="p-4">Margen (%)</th>
-                            <th class="p-4">Precio Final ($)</th>
-                            <th class="p-4 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-productos" class="divide-y divide-slate-800/60 text-base">
-                        <!-- Carga dinámica escritorio -->
-                    </tbody>
-                </table>
+    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE EXCEL -->
+    <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <span>📋</span> Pegar Productos desde Excel
+            </h3>
+            <p class="text-slate-400 text-sm mb-4">
+                En tu Excel, selecciona las 4 columnas en orden (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">SKU | Nombre | Categoria | PrecioBase</code>), cópialas (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + C</code>) y pégalas directamente aquí (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>):
+            </p>
+            <textarea id="texto-pegado" rows="8" placeholder="TEC-101	Laptop Gamer Pro	Portátiles	950.00
+TEC-201	Monitor Gaming	Monitores	220.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
+                <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
             </div>
         </div>
     </div>
