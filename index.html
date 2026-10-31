@@ -6,7 +6,7 @@
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=14" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=15" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -169,7 +169,7 @@
             container.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tu lista de proveedor aquí!</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o usa la importación inteligente por IA!</div>`;
                 return;
             }
 
@@ -285,7 +285,7 @@
                 id: nuevoId,
                 sku: `TEC-${Math.floor(100 + Math.random() * 900)}`,
                 nombre: 'Nuevo Producto TECNISEVEN',
-                descripcion: 'Especificaciones clave del producto',
+                descripcion: 'Especificaciones clave',
                 categoria: 'General',
                 base: 100.00,
                 margen: 20,
@@ -322,83 +322,99 @@
         window.toggleModalImportacion = (mostrar) => {
             const modal = document.getElementById('modal-importar');
             if (modal) {
-                if (mostrar) modal.classList.remove('hidden');
-                else modal.classList.add('hidden');
+                if (mostrar) {
+                    modal.classList.remove('hidden');
+                    // Cargar API Key guardada si existe
+                    const savedKey = localStorage.getItem('gemini_api_key');
+                    if (savedKey) document.getElementById('gemini-api-key').value = savedKey;
+                } else {
+                    modal.classList.add('hidden');
+                }
             }
         };
 
-        window.importarPegado = () => {
+        // --- FUNCIÓN DE IMPORTACIÓN INTELIGENTE CON GEMINI API ---
+        window.importarConIA = async () => {
             const texto = document.getElementById('texto-pegado').value.trim();
+            const apiKey = document.getElementById('gemini-api-key').value.trim();
+
+            if (!apiKey) {
+                alert("Por favor ingresa tu API Key de Gemini.");
+                return;
+            }
             if (!texto) {
-                alert("Por favor pega los datos en el cuadro de texto.");
+                alert("Por favor pega los datos del proveedor en el cuadro de texto.");
                 return;
             }
 
-            const lineas = texto.split("\n");
-            let contadorImportados = 0;
+            // Guardar API Key localmente para futuras ocasiones
+            localStorage.setItem('gemini_api_key', apiKey);
 
-            for (let i = 0; i < lineas.length; i++) {
-                let linea = lineas[i].trim();
-                if (!linea) continue;
+            const btn = document.getElementById('btn-ia');
+            btn.innerText = "⏳ Analizando con IA...";
+            btn.disabled = true;
 
-                let columnas = linea.split('\t').map(c => c.trim()).filter(c => c !== '');
-                if (columnas.length < 2) {
-                    columnas = linea.split(',').map(c => c.trim()).filter(c => c !== '');
+            const prompt = `Actúa como un sistema experto de extracción de datos para un catálogo de tecnología. Analiza el siguiente texto desordenado de un proveedor y devuelve un JSON puro (un array de objetos) con los productos detectados. Cada objeto debe tener exactamente estas propiedades:
+- "nombre": Nombre limpio del producto (sin palabras basura como TARJETA GRAFICA genéricas si ya dice el modelo).
+- "descripcion": Especificaciones clave (memoria VRAM, frecuencia, Hz, pulgadas, procesador, etc.).
+- "categoria": Debe ser estrictamente una de estas opciones: ["Portátiles", "Monitores", "Periféricos", "Componentes", "Tarjetas Gráficas", "Accesorios", "General"].
+- "base": Precio numérico en dólares (solo el valor numérico, ej: 850.50).
+
+Texto del proveedor:
+${texto}
+
+Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdown alrededor ni texto adicional.`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
                 }
 
-                if (columnas.length >= 2) {
-                    let precioRaw = columnas[columnas.length - 1];
-                    let base = parseFloat(precioRaw.replace(/[$€\s]/g, '').replace(',', '.')) || 0;
+                let respuestaTexto = data.candidates[0].content.parts[0].text;
+                
+                // Limpiar etiquetas de markdown si la IA las incluye
+                respuestaTexto = respuestaTexto.replace(/```json/g, '').replace(/```/g, '').trim();
 
-                    let partesNombre = columnas.slice(0, columnas.length - 1);
-                    let textoOriginal = partesNombre.join(' ');
+                const productosAI = JSON.parse(respuestaTexto);
+                let contador = 0;
 
-                    let textLower = textoOriginal.toLowerCase();
-                    let categoria = "General";
-                    if (textLower.includes('tarjeta') || textLower.includes('rtx') || textLower.includes('gtx') || textLower.includes('radeon') || textLower.includes('5060') || textLower.includes('4060') || textLower.includes('4070') || textLower.includes('4080') || textLower.includes('4090')) {
-                        categoria = "Tarjetas Gráficas";
-                    } else if (textLower.includes('monitor') || textLower.includes('pantalla')) {
-                        categoria = "Monitores";
-                    } else if (textLower.includes('laptop') || textLower.includes('portatil') || textLower.includes('notebook')) {
-                        categoria = "Portátiles";
-                    } else if (textLower.includes('teclado') || textLower.includes('mouse') || textLower.includes('audifono') || textLower.includes('headset')) {
-                        categoria = "Periféricos";
-                    } else if (textLower.includes('procesador') || textLower.includes('cpu') || textLower.includes('ram') || textLower.includes('memoria') || textLower.includes('ssd') || textLower.includes('disco')) {
-                        categoria = "Componentes";
-                    }
-
-                    let nombreLimpio = textoOriginal
-                        .replace(/TARJETA\s+GRAFICA/gi, '')
-                        .replace(/TARJETA\s+DE\s+VIDEO/gi, '')
-                        .replace(/MONITOR/gi, '')
-                        .replace(/LAPTOP/gi, '')
-                        .trim();
-
-                    if (/^\d{4}/.test(nombreLimpio)) {
-                        nombreLimpio = 'RTX ' + nombreLimpio;
-                    }
-
-                    let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
-
+                productosAI.forEach((p, i) => {
                     let id = 'prod_' + Date.now() + '_' + i;
-                    let productoNuevo = { 
-                        id, 
-                        sku, 
-                        nombre: nombreLimpio || textoOriginal, 
-                        descripcion: '', 
-                        categoria, 
-                        base, 
-                        margen: 20, 
-                        ultimaModificacion: obtenerFechaActual() 
+                    let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
+                    let productoNuevo = {
+                        id,
+                        sku,
+                        nombre: p.nombre || 'Producto sin nombre',
+                        descripcion: p.descripcion || '',
+                        categoria: p.categoria || 'General',
+                        base: Number(p.base) || 0,
+                        margen: 20,
+                        ultimaModificacion: obtenerFechaActual()
                     };
-                    
                     window.guardarProductoNube(productoNuevo);
-                    contadorImportados++;
-                }
+                    contador++;
+                });
+
+                alert(`¡Se han importado ${contador} productos con éxito usando Inteligencia Artificial!`);
+                document.getElementById('texto-pegado').value = '';
+                toggleModalImportacion(false);
+            } catch (error) {
+                console.error(error);
+                alert("Error al procesar con Gemini API: " + error.message);
+            } finally {
+                btn.innerText = "✨ Procesar con Inteligencia Artificial";
+                btn.disabled = false;
             }
-            alert(`¡Se han importado ${contadorImportados} productos limpios a la nube!`);
-            document.getElementById('texto-pegado').value = '';
-            toggleModalImportacion(false);
         };
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -499,7 +515,7 @@
                 </button>
                 
                 <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
-                    📋 Pegar de Proveedor
+                    ✨ Importar con IA
                 </button>
 
                 <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm">
@@ -529,19 +545,29 @@
         </div>
     </div>
 
-    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE PROVEEDOR -->
+    <!-- VENTANA EMERGENTE (MODAL) PARA IMPORTACIÓN CON IA (GEMINI) -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <span>📋</span> Pegar Lista de Proveedor
+                <span>✨</span> Importación Inteligente (Gemini AI)
             </h3>
             <p class="text-slate-400 text-sm mb-4">
-                Pega tus datos directamente (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema limpiará palabras sobrantes y asignará la categoría de forma automática:
+                Pega cualquier lista desordenada de proveedor. La IA detectará los nombres, descripciones, categorías y precios automáticamente.
             </p>
-            <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
+
+            <div class="mb-4">
+                <label class="text-xs text-cyan-400 font-mono block mb-1">GEMINI API KEY</label>
+                <input type="password" id="gemini-api-key" placeholder="Pega tu API Key de Google AI Studio aquí..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm focus:border-[#2323ff]">
+            </div>
+
+            <div class="mb-4">
+                <label class="text-xs text-slate-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
+                <textarea id="texto-pegado" rows="6" placeholder="Ej: RTX 5060 Ti 16gb asus dual $880 - monitor gamer 27 pulg 144hz 220 usd..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff]"></textarea>
+            </div>
+
             <div class="flex justify-end gap-3">
                 <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
-                <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
+                <button id="btn-ia" onclick="importarConIA()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">✨ Procesar con Inteligencia Artificial</button>
             </div>
         </div>
     </div>
