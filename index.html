@@ -94,7 +94,7 @@
             container.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tus listas de Excel aquí!</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tus listas de proveedores aquí!</div>`;
                 return;
             }
 
@@ -115,7 +115,7 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-slate-800">
                         <div class="flex items-center gap-3 w-full sm:w-auto">
                             <span class="font-mono text-sm font-bold px-3 py-1 rounded-lg bg-[#2323ff]/15 text-[#2323ff] border border-[#2323ff]/30">${p.sku || ''}</span>
-                            <div class="w-full sm:w-80">
+                            <div class="w-full sm:w-96">
                                 <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-white text-base font-semibold focus:border-[#2323ff]" placeholder="Nombre del producto">
                             </div>
                         </div>
@@ -238,7 +238,6 @@
             document.body.removeChild(link);
         };
 
-        // --- FUNCIÓN PARA ABRIR/CERRAR MODAL DE PEGADO ---
         window.toggleModalImportacion = (mostrar) => {
             const modal = document.getElementById('modal-importar');
             if (modal) {
@@ -247,48 +246,60 @@
             }
         };
 
-        // --- PROCESAR EL TEXTO PEGADO DESDE EXCEL ---
+        // --- PEGADO INTELIGENTE LIMPIO (SIN SEPARAR MARCA) ---
         window.importarPegado = () => {
             const texto = document.getElementById('texto-pegado').value.trim();
             if (!texto) {
-                alert("Por favor pega los datos de Excel en el cuadro de texto.");
+                alert("Por favor pega los datos en el cuadro de texto.");
                 return;
             }
 
             const lineas = texto.split("\n");
             let contadorImportados = 0;
-            let inicio = 0;
 
-            // Si la primera línea tiene encabezados, los saltamos automáticamente
-            if (lineas[0].toLowerCase().includes('sku') || lineas[0].toLowerCase().includes('nombre')) {
-                inicio = 1;
-            }
-
-            for (let i = inicio; i < lineas.length; i++) {
+            for (let i = 0; i < lineas.length; i++) {
                 let linea = lineas[i].trim();
                 if (!linea) continue;
 
-                // Separar por tabulaciones (copiar directo de Excel) o comas
-                let columnas = linea.split('\t');
-                if (columnas.length < 4) {
-                    columnas = linea.split(',');
+                // Separar por tabulaciones o comas
+                let columnas = linea.split('\t').map(c => c.trim()).filter(c => c !== '');
+                if (columnas.length < 2) {
+                    columnas = linea.split(',').map(c => c.trim()).filter(c => c !== '');
                 }
 
-                if (columnas.length >= 4) {
-                    let sku = columnas[0].replace(/"/g, '').trim();
-                    let nombre = columnas[1].replace(/"/g, '').trim();
-                    let categoria = columnas[2].replace(/"/g, '').trim();
-                    let base = parseFloat(columnas[3].replace('$', '').replace(',', '.')) || 0;
-                    let margen = columnas[4] ? parseFloat(columnas[4]) : 20;
+                if (columnas.length >= 2) {
+                    // El último elemento siempre es el precio
+                    let precioRaw = columnas[columnas.length - 1];
+                    let base = parseFloat(precioRaw.replace(/[$€\s]/g, '').replace(',', '.')) || 0;
+
+                    // Todo lo anterior al precio se une en una sola descripción limpia (incluyendo marca si la trae)
+                    let partesNombre = columnas.slice(0, columnas.length - 1);
+                    let nombreLimpio = partesNombre.join(' ');
+
+                    let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
+
+                    let catLower = nombreLimpio.toLowerCase();
+                    let categoria = "General";
+                    if (catLower.includes('tarjeta') || catLower.includes('rtx') || catLower.includes('gtx') || catLower.includes('radeon') || catLower.includes('ti')) {
+                        categoria = "Tarjetas Gráficas";
+                    } else if (catLower.includes('monitor') || catLower.includes('pantalla')) {
+                        categoria = "Monitores";
+                    } else if (catLower.includes('laptop') || catLower.includes('portatil') || catLower.includes('notebook')) {
+                        categoria = "Portátiles";
+                    } else if (catLower.includes('teclado') || catLower.includes('mouse') || catLower.includes('audifono') || catLower.includes('headset')) {
+                        categoria = "Periféricos";
+                    } else if (catLower.includes('procesador') || catLower.includes('cpu') || catLower.includes('ram') || catLower.includes('memoria') || catLower.includes('ssd') || catLower.includes('disco')) {
+                        categoria = "Componentes";
+                    }
 
                     let id = 'prod_' + Date.now() + '_' + i;
                     let productoNuevo = { 
                         id, 
                         sku, 
-                        nombre, 
+                        nombre: nombreLimpio || 'Producto Proveedor', 
                         categoria, 
                         base, 
-                        margen, 
+                        margen: 20, 
                         ultimaModificacion: obtenerFechaActual() 
                     };
                     
@@ -296,7 +307,7 @@
                     contadorImportados++;
                 }
             }
-            alert(`¡Se han importado ${contadorImportados} productos a la nube con éxito!`);
+            alert(`¡Se han importado ${contadorImportados} productos con éxito!`);
             document.getElementById('texto-pegado').value = '';
             toggleModalImportacion(false);
         };
@@ -322,9 +333,8 @@
                     📥 Exportar
                 </button>
                 
-                <!-- BOTÓN PARA ABRIR EL MODAL DE PEGADO DIRECTO -->
                 <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
-                    📋 Pegar de Excel
+                    📋 Pegar de Proveedor
                 </button>
 
                 <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm">
@@ -350,17 +360,17 @@
         </div>
     </div>
 
-    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE EXCEL -->
+    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE EXCEL / PROVEEDOR -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <span>📋</span> Pegar Productos desde Excel
+                <span>📋</span> Pegar Lista de Proveedor
             </h3>
             <p class="text-slate-400 text-sm mb-4">
-                En tu Excel, selecciona las 4 columnas en orden (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">SKU | Nombre | Categoria | PrecioBase</code>), cópialas (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + C</code>) y pégalas directamente aquí (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>):
+                Copia las filas de la lista de tu proveedor y pégalas aquí (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema tomará todo el texto como nombre y detectará el precio automáticamente:
             </p>
-            <textarea id="texto-pegado" rows="8" placeholder="TEC-101	Laptop Gamer Pro	Portátiles	950.00
-TEC-201	Monitor Gaming	Monitores	220.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
+            <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880
+LAPTOP GAMER PRO    MSI    $ 1250" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
             <div class="flex justify-end gap-3">
                 <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
                 <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
