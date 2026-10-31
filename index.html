@@ -48,7 +48,7 @@
             tbody.innerHTML = '';
 
             if (lista.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No hay productos. ¡Agrega uno nuevo!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No hay productos. ¡Agrega uno nuevo o importa un CSV!</td></tr>`;
                 return;
             }
 
@@ -60,10 +60,10 @@
                     <td class="p-4 font-mono text-blue-500">${p.sku || ''}</td>
                     <td class="p-4"><input type="text" value="${p.nombre || ''}" onchange="actualizar('${p.id}', 'nombre', this.value)" class="bg-transparent text-white w-full"></td>
                     <td class="p-4"><input type="text" value="${p.categoria || ''}" onchange="actualizar('${p.id}', 'categoria', this.value)" class="bg-transparent text-white w-32"></td>
-                    <td class="p-4"><input type="number" step="0.01" value="${p.base || 0}" onchange="actualizar('${p.id}', 'base', parseFloat(this.value))" class="bg-slate-900 border border-slate-800 rounded p-1 w-24 text-white"></td>
-                    <td class="p-4"><input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizar('${p.id}', 'margen', parseFloat(this.value))" class="bg-slate-900 border border-slate-800 rounded p-1 w-20 text-white"></td>
-                    <td class="p-4 font-bold text-blue-400">$${final.toFixed(2)}</td>
-                    <td class="p-4 text-center"><button onclick="eliminar('${p.id}')" class="text-rose-500 font-bold">✕</button></td>
+                    <td class="p-4"><input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded p-1 w-24 text-white"></td>
+                    <td class="p-4"><input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded p-1 w-20 text-white"></td>
+                    <td class="p-4"><input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="bg-slate-900 border border-blue-600 rounded p-1 w-28 text-white font-bold text-blue-400"></td>
+                    <td class="p-4 text-center"><button onclick="eliminar('${p.id}')" class="text-rose-500 font-bold cursor-pointer">✕</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -72,6 +72,25 @@
         window.actualizar = (id, campo, valor) => {
             let p = productos.find(x => x.id === id);
             if(p) { p[campo] = valor; window.guardarProductoNube(p); }
+        };
+
+        window.actualizarBase = (id, valor) => {
+            let p = productos.find(x => x.id === id);
+            if(p) { p.base = parseFloat(valor) || 0; window.guardarProductoNube(p); }
+        };
+
+        window.actualizarMargen = (id, valor) => {
+            let p = productos.find(x => x.id === id);
+            if(p) { p.margen = parseFloat(valor) || 0; window.guardarProductoNube(p); }
+        };
+
+        window.actualizarPrecioFinal = (id, valor) => {
+            const finalVal = parseFloat(valor);
+            let p = productos.find(x => x.id === id);
+            if(p && !isNaN(finalVal) && p.base > 0) {
+                p.margen = parseFloat((((finalVal / p.base) - 1) * 100).toFixed(2));
+                window.guardarProductoNube(p);
+            }
         };
 
         window.agregarProducto = () => {
@@ -103,6 +122,7 @@
             let reader = new FileReader();
             reader.onload = function(evt) {
                 let lineas = evt.target.result.split("\n");
+                let count = 0;
                 for (let i = 1; i < lineas.length; i++) {
                     let cols = lineas[i].split(',');
                     if (cols.length >= 5) {
@@ -114,9 +134,10 @@
                             base: parseFloat(cols[3]) || 0,
                             margen: parseFloat(cols[4]) || 0
                         });
+                        count++;
                     }
                 }
-                alert("¡Importación completa!");
+                alert(`¡Se importaron ${count} productos con éxito!`);
             };
             reader.readAsText(file);
         };
@@ -124,25 +145,35 @@
 </head>
 <body class="bg-slate-950 text-slate-100 p-6 font-sans">
     <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-800 pb-4 gap-4">
             <h1 class="text-2xl font-bold">⚡ TECNISEVEN <span class="text-blue-500 font-light">| Catálogo Nube</span></h1>
-            <div class="flex gap-2">
-                <button onclick="exportarCSV()" class="bg-slate-900 border border-slate-700 px-3 py-2 rounded text-sm">📥 Exportar CSV</button>
-                <label class="bg-slate-900 border border-slate-700 px-3 py-2 rounded text-sm cursor-pointer">📤 Importar CSV <input type="file" accept=".csv" onchange="importarCSV(event)" class="hidden"></label>
-                <button onclick="agregarProducto()" class="bg-blue-600 px-4 py-2 rounded text-sm font-bold">+ Producto</button>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="exportarCSV()" class="bg-slate-900 border border-slate-700 hover:border-blue-500 px-3 py-2 rounded text-sm cursor-pointer">📥 Exportar CSV</button>
+                <label class="bg-slate-900 border border-slate-700 hover:border-blue-500 px-3 py-2 rounded text-sm cursor-pointer">📤 Importar CSV <input type="file" accept=".csv" onchange="importarCSV(event)" class="hidden"></label>
+                <button onclick="agregarProducto()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-bold cursor-pointer">+ Producto</button>
             </div>
         </div>
         <div class="mb-4 flex justify-between items-center bg-slate-900 p-3 rounded border border-slate-800">
             <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar..." class="bg-slate-950 border border-slate-800 rounded p-2 text-sm w-80 text-white">
             <span class="text-sm text-slate-400">Total: <span id="contador-productos" class="text-blue-400 font-bold">0</span></span>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded overflow-hidden">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-950 text-blue-500 border-b border-slate-800">
-                    <tr><th class="p-3">SKU</th><th class="p-3">Producto</th><th class="p-3">Categoría</th><th class="p-3">Base ($)</th><th class="p-3">Margen (%)</th><th class="p-3">Final ($)</th><th class="p-3 text-center">Acción</th></tr>
-                </thead>
-                <tbody id="tabla-productos"></tbody>
-            </table>
+        <div class="bg-slate-900 border border-slate-800 rounded overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-950 text-blue-500 border-b border-slate-800">
+                        <tr>
+                            <th class="p-3">SKU</th>
+                            <th class="p-3">Producto</th>
+                            <th class="p-3">Categoría</th>
+                            <th class="p-3">Base ($)</th>
+                            <th class="p-3">Margen (%)</th>
+                            <th class="p-3">Final ($)</th>
+                            <th class="p-3 text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-productos"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </body>
