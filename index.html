@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TECNISEVEN - Catálogo y Precios Dinámicos</title>
+    <title>TECNISEVEN - Catálogo en la Nube</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .neon-glow {
@@ -20,6 +20,188 @@
             border: 2px solid #2323ff !important;
         }
     </style>
+
+    <!-- Módulos de Firebase Realtime Database -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // CONFIGURACIÓN DE TUS LLAVES REALES DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYTZrTBFxhwr0Pz9v7oFXNQLKJJPsA7H4",
+            authDomain: "tecniseven-catalogo.firebaseapp.com",
+            databaseURL: "https://tecniseven-catalogo-default-rtdb.firebaseio.com",
+            projectId: "tecniseven-catalogo",
+            storageBucket: "tecniseven-catalogo.firebasestorage.app",
+            messagingSenderId: "916685844409",
+            appId: "1:916685844409:web:d4192b1560cffddfd35068",
+            measurementId: "G-CFHET0V9YL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const productosRef = ref(db, 'productos');
+
+        let productos = [];
+        let ordenInvertido = false;
+
+        // Escuchar cambios en la nube en tiempo real desde cualquier dispositivo
+        onValue(productosRef, (snapshot) => {
+            const data = snapshot.val();
+            productos = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    productos.push({ id: key, ...data[key] });
+                });
+            }
+            renderizar();
+        });
+
+        window.guardarProductoNube = (producto) => {
+            set(ref(db, 'productos/' + producto.id), producto);
+        };
+
+        window.eliminarProductoNube = (id) => {
+            remove(ref(db, 'productos/' + id));
+        };
+
+        window.renderizar = () => {
+            const filtro = (document.getElementById('buscador')?.value || '').toLowerCase();
+            
+            let listaFiltrada = productos.filter(p => 
+                (p.nombre || '').toLowerCase().includes(filtro) || 
+                (p.sku || '').toLowerCase().includes(filtro) || 
+                (p.categoria || '').toLowerCase().includes(filtro)
+            );
+
+            listaFiltrada.sort((a, b) => {
+                const numA = parseInt(((a.nombre || '').match(/\d+/) || [0])[0]);
+                const numB = parseInt(((b.nombre || '').match(/\d+/) || [0])[0]);
+                if (numA !== numB) return numA - numB;
+                return (a.nombre || '').localeCompare(b.nombre || '', 'es');
+            });
+
+            if (ordenInvertido) listaFiltrada.reverse();
+
+            const contador = document.getElementById('contador-productos');
+            if (contador) contador.innerText = listaFiltrada.length;
+
+            const tbody = document.getElementById('tabla-productos');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (listaFiltrada.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No hay productos en la nube. ¡Agrega uno nuevo!</td></tr>`;
+                return;
+            }
+
+            listaFiltrada.forEach((p) => {
+                const final = Number(p.base || 0) * (1 + (Number(p.margen || 0) / 100));
+
+                let optionsHTML = '';
+                const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Componentes', 'Tarjetas Gráficas', 'Accesorios'];
+                categoriasDisponibles.forEach(cat => {
+                    const selected = (p.categoria === cat) ? 'selected' : '';
+                    optionsHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
+                });
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition group';
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-medium" style="color: #2323ff;">${p.sku || ''}</td>
+                    <td class="p-4">
+                        <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 w-full text-white py-1 transition">
+                    </td>
+                    <td class="p-4">
+                        <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-slate-300">
+                            ${optionsHTML}
+                        </select>
+                    </td>
+                    <td class="p-4">
+                        <div class="relative flex items-center">
+                            <span class="absolute left-2 text-slate-400">$</span>
+                            <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-7 pr-3 py-1.5 w-32 text-white font-mono">
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <div class="relative flex items-center">
+                            <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" id="margen-input-${p.id}" class="bg-slate-900 border border-slate-800 rounded pl-3 pr-7 py-1.5 w-24 text-white font-mono">
+                            <span class="text-slate-500 absolute right-3">%</span>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <div class="relative flex items-center">
+                            <span class="absolute left-2 font-bold" style="color: #2323ff;">$</span>
+                            <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" id="final-input-${p.id}" class="input-precio-final rounded pl-7 pr-3 py-1.5 w-32 font-mono font-bold neon-glow">
+                        </div>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="eliminarProducto('${p.id}')" class="text-slate-600 hover:text-rose-400 transition p-1 cursor-pointer" title="Eliminar producto">
+                            ✕
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        window.actualizarDato = (id, campo, valor) => {
+            const prod = productos.find(p => String(p.id) === String(id));
+            if (prod) {
+                prod[campo] = valor;
+                window.guardarProductoNube(prod);
+            }
+        };
+
+        window.actualizarBase = (id, valor) => {
+            const prod = productos.find(p => String(p.id) === String(id));
+            if (prod) {
+                prod.base = parseFloat(valor) || 0;
+                window.guardarProductoNube(prod);
+            }
+        };
+
+        window.actualizarMargen = (id, valor) => {
+            const prod = productos.find(p => String(p.id) === String(id));
+            if (prod) {
+                prod.margen = parseFloat(valor) || 0;
+                window.guardarProductoNube(prod);
+            }
+        };
+
+        window.actualizarPrecioFinal = (id, valor) => {
+            const finalVal = parseFloat(valor);
+            const prod = productos.find(p => String(p.id) === String(id));
+            if (prod && !isNaN(finalVal) && prod.base > 0) {
+                prod.margen = parseFloat((((finalVal / prod.base) - 1) * 100).toFixed(2));
+                window.guardarProductoNube(prod);
+            }
+        };
+
+        window.agregarProducto = () => {
+            const nuevoId = 'prod_' + Date.now();
+            const nuevoProd = {
+                id: nuevoId,
+                sku: `TEC-${Math.floor(100 + Math.random() * 900)}`,
+                nombre: 'Nuevo Producto TECNISEVEN',
+                categoria: 'Tarjetas Gráficas',
+                base: 500.00,
+                margen: 20
+            };
+            window.guardarProductoNube(nuevoProd);
+        };
+
+        window.eliminarProducto = (id) => {
+            if (confirm('¿Deseas eliminar este producto de la nube?')) {
+                window.eliminarProductoNube(id);
+            }
+        };
+
+        window.cambiarOrden = () => {
+            ordenInvertido = !ordenInvertido;
+            window.renderizar();
+        };
+    </script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
     <div class="max-w-6xl mx-auto">
@@ -29,26 +211,23 @@
                 <div class="flex items-center gap-3">
                     <span class="bg-[#2323ff]/15 border border-[#2323ff]/40 p-2.5 rounded-xl text-[#2323ff] text-2xl neon-glow">⚡</span>
                     <h1 class="text-3xl font-extrabold tracking-tight text-white">
-                        TECNISEVEN <span style="color: #2323ff;" class="font-light">| Catálogo Dinámico</span>
+                        TECNISEVEN <span style="color: #2323ff;" class="font-light">| Catálogo Nube</span>
                     </h1>
                 </div>
-                <p class="text-slate-400 mt-2">Gestión inteligente de productos tecnológicos. Tus datos se guardan de forma permanente y segura.</p>
+                <p class="text-slate-400 mt-2">Sincronización en tiempo real entre celular y computadora mediante Firebase.</p>
             </div>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex gap-3">
                 <button onclick="agregarProducto()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition flex items-center gap-2 shadow-lg neon-glow cursor-pointer">
                     + Nuevo Producto
-                </button>
-                <button onclick="exportarCSV()" class="bg-slate-900 hover:bg-slate-800 text-slate-200 px-4 py-2.5 rounded-lg font-medium transition border border-slate-800 cursor-pointer">
-                    Exportar CSV
                 </button>
             </div>
         </div>
 
-        <!-- Barra de Búsqueda y Herramientas -->
+        <!-- Buscador -->
         <div class="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900/40 p-4 rounded-2xl border border-slate-800">
             <div class="relative w-full md:w-96">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
-                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU o categoría..." class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2 w-full text-white text-sm focus:border-[#2323ff]">
+                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar en la nube por producto, SKU..." class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2 w-full text-white text-sm focus:border-[#2323ff]">
             </div>
             <div class="text-slate-400 text-sm">
                 Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos
@@ -71,197 +250,11 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-productos" class="divide-y divide-slate-800/60 text-sm">
-                        <!-- Inyectado por JS -->
+                        <!-- Carga dinámica desde la nube -->
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-
-    <script>
-        let ordenInvertido = false;
-        const STORAGE_KEY = 'tecniseven_catalogo_maestro_v1';
-
-        function obtenerProductos() {
-            let data = localStorage.getItem(STORAGE_KEY);
-            if (!data) {
-                const inicial = [
-                    { id: 1, sku: 'TEC-001', nombre: 'GeForce RTX 5060 Standard', categoria: 'Tarjetas Gráficas', base: 350.00, margen: 20 },
-                    { id: 2, sku: 'TEC-002', nombre: 'GeForce RTX 5060 Ti OC', categoria: 'Tarjetas Gráficas', base: 450.00, margen: 22 },
-                    { id: 3, sku: 'TEC-003', nombre: 'GeForce RTX 5070 Gaming', categoria: 'Tarjetas Gráficas', base: 600.00, margen: 25 },
-                    { id: 4, sku: 'TEC-004', nombre: 'Radeon RX 7700 XT', categoria: 'Tarjetas Gráficas', base: 430.00, margen: 20 },
-                    { id: 5, sku: 'TEC-005', nombre: 'Laptop Pro 16" (Alta Calidad)', categoria: 'Portátiles', base: 1200.00, margen: 25 }
-                ];
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(inicial));
-                return inicial;
-            }
-            return JSON.parse(data);
-        }
-
-        let productos = obtenerProductos();
-        const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Componentes', 'Tarjetas Gráficas', 'Accesorios'];
-
-        function guardar() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(productos));
-        }
-
-        function cambiarOrden() {
-            ordenInvertido = !ordenInvertido;
-            renderizar();
-        }
-
-        function renderizar() {
-            const filtro = document.getElementById('buscador').value.toLowerCase();
-            
-            let listaFiltrada = productos.filter(p => 
-                p.nombre.toLowerCase().includes(filtro) || 
-                p.sku.toLowerCase().includes(filtro) || 
-                p.categoria.toLowerCase().includes(filtro)
-            );
-
-            // Ordenamiento inteligente por modelo numérico
-            listaFiltrada.sort((a, b) => {
-                const numA = parseInt((a.nombre.match(/\d+/) || [0])[0]);
-                const numB = parseInt((b.nombre.match(/\d+/) || [0])[0]);
-                if (numA !== numB) {
-                    return numA - numB;
-                }
-                return a.nombre.localeCompare(b.nombre, 'es');
-            });
-
-            if (ordenInvertido) listaFiltrada.reverse();
-
-            document.getElementById('contador-productos').innerText = listaFiltrada.length;
-
-            const tbody = document.getElementById('tabla-productos');
-            tbody.innerHTML = '';
-
-            if (listaFiltrada.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No se encontraron productos coincidentes.</td></tr>`;
-                return;
-            }
-
-            listaFiltrada.forEach((p) => {
-                const index = productos.findIndex(item => item.id === p.id);
-                const final = Number(p.base) * (1 + (Number(p.margen) / 100));
-
-                let optionsHTML = '';
-                categoriasDisponibles.forEach(cat => {
-                    const selected = (p.categoria === cat) ? 'selected' : '';
-                    optionsHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
-                });
-
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-800/40 transition group';
-                tr.innerHTML = `
-                    <td class="p-4 font-mono font-medium" style="color: #2323ff;">${p.sku}</td>
-                    <td class="p-4">
-                        <input type="text" value="${p.nombre}" oninput="actualizarTexto(${index}, 'nombre', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 w-full text-white py-1 transition">
-                    </td>
-                    <td class="p-4">
-                        <select onchange="actualizarTexto(${index}, 'categoria', this.value)" class="bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-slate-300">
-                            ${optionsHTML}
-                        </select>
-                    </td>
-                    <td class="p-4">
-                        <div class="relative flex items-center">
-                            <span class="absolute left-2 text-slate-400">$</span>
-                            <input type="number" step="0.01" value="${p.base}" oninput="actualizarBase(${index}, this.value)" class="bg-slate-900 border border-slate-800 rounded pl-7 pr-3 py-1.5 w-32 text-white font-mono">
-                        </div>
-                    </td>
-                    <td class="p-4">
-                        <div class="relative flex items-center">
-                            <input type="number" step="0.1" value="${p.margen}" oninput="actualizarMargen(${index}, this.value)" id="margen-input-${index}" class="bg-slate-900 border border-slate-800 rounded pl-3 pr-7 py-1.5 w-24 text-white font-mono">
-                            <span class="text-slate-500 absolute right-3">%</span>
-                        </div>
-                    </td>
-                    <td class="p-4">
-                        <div class="relative flex items-center">
-                            <span class="absolute left-2 font-bold" style="color: #2323ff;">$</span>
-                            <input type="number" step="0.01" value="${final.toFixed(2)}" oninput="actualizarPrecioFinal(${index}, this.value)" id="final-input-${index}" class="input-precio-final rounded pl-7 pr-3 py-1.5 w-32 font-mono font-bold neon-glow">
-                        </div>
-                    </td>
-                    <td class="p-4 text-center">
-                        <button onclick="eliminarProducto(${index})" class="text-slate-600 hover:text-rose-400 transition p-1 cursor-pointer" title="Eliminar producto">
-                            ✕
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function actualizarBase(index, valor) {
-            const num = parseFloat(valor);
-            productos[index].base = isNaN(num) ? 0 : num;
-            const final = productos[index].base * (1 + (productos[index].margen / 100));
-            const inputFinal = document.getElementById(`final-input-${index}`);
-            if (inputFinal) inputFinal.value = final.toFixed(2);
-            guardar();
-        }
-
-        function actualizarMargen(index, valor) {
-            const num = parseFloat(valor);
-            productos[index].margen = isNaN(num) ? 0 : num;
-            const final = productos[index].base * (1 + (productos[index].margen / 100));
-            const inputFinal = document.getElementById(`final-input-${index}`);
-            if (inputFinal) inputFinal.value = final.toFixed(2);
-            guardar();
-        }
-
-        function actualizarPrecioFinal(index, valor) {
-            const finalVal = parseFloat(valor);
-            if (!isNaN(finalVal) && productos[index].base > 0) {
-                const nuevoMargen = ((finalVal / productos[index].base) - 1) * 100;
-                productos[index].margen = parseFloat(nuevoMargen.toFixed(2));
-                const inputMargen = document.getElementById(`margen-input-${index}`);
-                if (inputMargen) inputMargen.value = productos[index].margen;
-                guardar();
-            }
-        }
-
-        function actualizarTexto(index, campo, valor) {
-            productos[index][campo] = valor;
-            guardar();
-        }
-
-        function agregarProducto() {
-            const nuevoId = productos.length ? Math.max(...productos.map(p => p.id)) + 1 : 1;
-            productos.push({
-                id: nuevoId,
-                sku: `TEC-00${nuevoId}`,
-                nombre: 'Nuevo Producto TECNISEVEN',
-                categoria: 'Tarjetas Gráficas',
-                base: 500.00,
-                margen: 20
-            });
-            guardar();
-            renderizar();
-        }
-
-        function eliminarProducto(index) {
-            if(confirm('¿Deseas eliminar este producto del catálogo?')) {
-                productos.splice(index, 1);
-                guardar();
-                renderizar();
-            }
-        }
-
-        function exportarCSV() {
-            let csv = 'SKU,Nombre,Categoria,Precio_Base,Margen_Pct,Precio_Final\n';
-            productos.forEach(p => {
-                const final = Number(p.base) * (1 + (Number(p.margen) / 100));
-                csv += `"${p.sku}","${p.nombre}","${p.categoria}",${p.base},${p.margen},${final.toFixed(2)}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'TECNISEVEN_catalogo_precios.csv';
-            a.click();
-        }
-
-        renderizar();
-    </script>
 </body>
 </html>
