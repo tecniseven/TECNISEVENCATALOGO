@@ -5,13 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
-    <!-- FAVICON PARA LA PESTAÑA DEL NAVEGADOR -->
-    <link rel="icon" type="image/png" href="Logo.png" onerror="this.href='logo.png';">
+    <!-- FAVICON MULTIFORMATO PARA LA PESTAÑA -->
+    <link rel="icon" type="image/png" href="Logo.png" id="favicon-link">
+    <script>
+        // Verificación de respaldo para favicon según caso de letra
+        const imgFavicon = new Image();
+        imgFavicon.src = 'Logo.png';
+        imgFavicon.onerror = () => {
+            const fav = document.getElementById('favicon-link');
+            if (fav) fav.href = 'logo.png';
+        };
+    </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .neon-glow {
             box-shadow: 0 0 15px rgba(35, 35, 255, 0.4);
+        }
+        .neon-glow-strong {
+            box-shadow: 0 0 25px rgba(35, 35, 255, 0.7);
         }
         input:focus, select:focus {
             border-color: #2323ff !important;
@@ -22,6 +34,16 @@
             background-color: #0b0b1a !important;
             color: #ffffff !important;
             border: 2px solid #2323ff !important;
+        }
+        
+        /* Animación de la barra de carga */
+        @keyframes pulse-bar {
+            0% { width: 10%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        .loading-progress {
+            animation: pulse-bar 1.5s ease-in-out infinite;
         }
     </style>
 
@@ -48,6 +70,7 @@
         let productos = [];
         let ordenInvertido = false;
 
+        // Escuchar datos en la nube y ocultar la Pantalla de Carga
         onValue(productosRef, (snapshot) => {
             const data = snapshot.val();
             productos = [];
@@ -57,6 +80,16 @@
                 });
             }
             renderizar();
+
+            // Transición suave para ocultar la pantalla de carga (Loading Screen)
+            setTimeout(() => {
+                const loader = document.getElementById('loading-screen');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    loader.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+            }, 600);
         });
 
         window.guardarProductoNube = (producto) => {
@@ -98,7 +131,7 @@
             container.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tu lista aquí!</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la nube. ¡Agrega uno nuevo o pega tu lista de proveedor aquí!</div>`;
                 return;
             }
 
@@ -250,7 +283,7 @@
             }
         };
 
-        // --- PEGADO INTELIGENTE DE PROVEEDOR (LIMPIO) ---
+        // --- PEGADO INTELIGENTE DE PROVEEDORES ---
         window.importarPegado = () => {
             const texto = document.getElementById('texto-pegado').value.trim();
             if (!texto) {
@@ -325,7 +358,22 @@
         };
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 font-sans relative">
+
+    <!-- PANTALLA DE CARGA CYBERPUNK (LOADING SCREEN) -->
+    <div id="loading-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div class="relative mb-6">
+            <img src="Logo.png" alt="Cargando TECNISEVEN" class="h-24 w-auto object-contain rounded-2xl bg-slate-900 border-2 border-[#2323ff] p-3 neon-glow-strong animate-pulse" onerror="this.onerror=null; this.src='logo.png';">
+        </div>
+        <h2 class="text-2xl font-black tracking-wider text-white mb-2">TECNISEVEN</h2>
+        <p class="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-6">Sincronizando Base de Datos Realtime...</p>
+        
+        <!-- Barra de progreso futurista -->
+        <div class="w-64 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div class="h-full bg-[#2323ff] loading-progress shadow-[0_0_10px_#2323ff]"></div>
+        </div>
+    </div>
+
     <div class="max-w-5xl mx-auto">
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 border-b border-slate-800 pb-6">
