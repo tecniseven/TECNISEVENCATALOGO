@@ -6,7 +6,7 @@
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=10" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=12" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -36,18 +36,10 @@
             color: #ffffff !important;
             border: 2px solid #2323ff !important;
         }
-        
-        /* Animación y efecto de rayos de energía mejorado */
-        @keyframes electric-bar {
-            0% { background-position: 0% 50%; width: 15%; }
-            50% { background-position: 100% 50%; width: 85%; }
-            100% { background-position: 0% 50%; width: 100%; }
-        }
-        .electric-progress {
-            background: linear-gradient(90deg, #0055ff, #00ffff, #ffffff, #00ffff, #0055ff);
-            background-size: 300% 100%;
-            animation: electric-bar 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            box-shadow: 0 0 20px #00ffff, 0 0 40px #2323ff, inset 0 0 10px #ffffff;
+
+        /* Barra contenedora con resplandor eléctrico */
+        .bar-container {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(35, 35, 255, 0.6);
         }
     </style>
 
@@ -74,11 +66,9 @@
         let productos = [];
         let ordenInvertido = false;
 
-        // CREDENCIALES
         const USUARIO_CORRECTO = "tecniseven";
         const PASS_CORRECTA = "iCloud480.";
 
-        // VERIFICAR SESIÓN LOCAL
         window.verificarSesionLocal = () => {
             const sesion = localStorage.getItem('tecniseven_logged');
             const loginScreen = document.getElementById('login-screen');
@@ -118,7 +108,6 @@
             window.verificarSesionLocal();
         };
 
-        // Seguro anti-bloqueo para la pantalla de carga
         window.ocultarLoader = () => {
             const loader = document.getElementById('loading-screen');
             if (loader && loader.style.display !== 'none') {
@@ -144,7 +133,68 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             window.verificarSesionLocal();
+            iniciarCanvasRelampagos();
         });
+
+        // --- ANIMACIÓN DE RELÁMPAGOS/RAYOS REALES EN CANVAS ---
+        function iniciarCanvasRelampagos() {
+            const canvas = document.getElementById('canvas-rayos');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let progreso = 0;
+
+            function dibujarRelampago(startX, startY, endX, endY, color, width) {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                let currentX = startX;
+                let currentY = startY;
+                const segmentos = 8;
+                const stepX = (endX - startX) / segmentos;
+
+                for (let i = 0; i < segmentos; i++) {
+                    const nextX = currentX + stepX;
+                    const nextY = (i === segmentos - 1) ? endY : startY + (Math.random() - 0.5) * 14;
+                    ctx.lineTo(nextX, nextY);
+                    currentX = nextX;
+                    currentY = nextY;
+                }
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.shadowColor = '#00ffff';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+            }
+
+            function animar() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Progreso creciente
+                progreso = (progreso + 1.2) % 100;
+                const actualWidth = (canvas.width * progreso) / 100;
+
+                // Fondo del relleno cargado
+                ctx.fillStyle = '#2323ff';
+                ctx.fillRect(0, 0, actualWidth, canvas.height);
+
+                // Dibujar varios relámpagos parpadeantes sobre la zona cargada
+                if (actualWidth > 10) {
+                    // Rayo principal blanco centrado
+                    dibujarRelampago(0, canvas.height / 2, actualWidth, canvas.height / 2, '#ffffff', 2.5);
+                    
+                    // Relámpagos secundarios de cian/azul
+                    if (Math.random() > 0.3) {
+                        dibujarRelampago(0, canvas.height / 2 + 2, actualWidth, canvas.height / 2 + 3, '#00ffff', 1.5);
+                    }
+                    if (Math.random() > 0.5) {
+                        dibujarRelampago(0, canvas.height / 2 - 2, actualWidth, canvas.height / 2 - 3, '#99ffff', 1);
+                    }
+                }
+
+                requestAnimationFrame(animar);
+            }
+            animar();
+        }
 
         window.guardarProductoNube = (producto) => {
             set(ref(db, 'productos/' + producto.id), producto);
@@ -413,7 +463,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 font-sans relative">
 
-    <!-- PANTALLA DE CARGA CYBERPUNK CON BARRA DE RAYOS POTENCIADA -->
+    <!-- PANTALLA DE CARGA CON BARRA Y CANVAS DE RELÁMPAGOS -->
     <div id="loading-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
         <div class="relative mb-8">
             <img src="Logo.png" alt="Cargando TECNISEVEN" class="h-36 sm:h-44 w-auto object-contain rounded-3xl bg-slate-900 border-2 border-[#2323ff] p-5 neon-glow-strong animate-pulse" onerror="this.onerror=null; this.src='logo.png';">
@@ -421,13 +471,13 @@
         <h2 class="text-3xl font-black tracking-widest text-white mb-2 uppercase">TECNISEVEN</h2>
         <p class="text-cyan-400 text-sm font-mono tracking-widest uppercase mb-8">Cargando Sistema & Sincronizando Datos...</p>
         
-        <!-- Barra de carga con efecto de rayos eléctricos y neón más gruesa y visible -->
-        <div class="w-80 h-3.5 bg-slate-900/90 rounded-full overflow-hidden border-2 border-cyan-500/40 p-0.5 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
-            <div class="h-full rounded-full electric-progress"></div>
+        <!-- Barra contenedora con Canvas de Relámpagos -->
+        <div class="w-80 sm:w-96 h-6 bg-slate-900/90 rounded-full overflow-hidden border-2 border-cyan-400 bar-container p-0.5 relative">
+            <canvas id="canvas-rayos" width="380" height="20" class="w-full h-full rounded-full block"></canvas>
         </div>
     </div>
 
-    <!-- PANTALLA DE LOGIN LIMPIA -->
+    <!-- PANTALLA DE LOGIN -->
     <div id="login-screen" class="hidden fixed inset-0 z-40 bg-slate-950 flex flex-col items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl neon-glow">
             <div class="text-center mb-6">
@@ -496,31 +546,4 @@
                 <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU..." class="bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-sm focus:border-[#2323ff]">
             </div>
             <div class="text-slate-300 text-sm text-right w-full sm:w-auto">
-                Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
-            </div>
-        </div>
-
-        <!-- Contenedor Principal de Productos -->
-        <div id="lista-productos">
-            <!-- Carga dinámica -->
-        </div>
-    </div>
-
-    <!-- VENTANA EMERGENTE (MODAL) PARA COPIAR Y PEGAR DESDE PROVEEDOR -->
-    <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative">
-            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <span>📋</span> Pegar Lista de Proveedor
-            </h3>
-            <p class="text-slate-400 text-sm mb-4">
-                Pega tus datos directamente (<code class="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-mono">Ctrl + V</code>). El sistema limpiará palabras sobrantes y asignará la categoría de forma automática:
-            </p>
-            <textarea id="texto-pegado" rows="8" placeholder="TARJETA GRAFICA 5060TI 16GB ASUS DUAL    ASUS     $ 880" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff] mb-4"></textarea>
-            <div class="flex justify-end gap-3">
-                <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
-                <button onclick="importarPegado()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">Procesar e Importar</button>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+                Mostrando <span id="contador-productos" class="text-cyan-
