@@ -26,7 +26,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // TUS LLAVES REALES DE FIREBASE (CONEXIÓN SEGURA Y ACTIVA)
         const firebaseConfig = {
             apiKey: "AIzaSyCYTZrTBFxhwr0Pz9v7oFXNQLKJJPsA7H4",
             authDomain: "tecniseven-catalogo.firebaseapp.com",
@@ -45,7 +44,6 @@
         let productos = [];
         let ordenInvertido = false;
 
-        // Escuchar cambios en la nube en tiempo real
         onValue(productosRef, (snapshot) => {
             const data = snapshot.val();
             productos = [];
@@ -96,13 +94,13 @@
             tbody.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500 font-medium text-base">No hay productos en la nube. ¡Agrega uno nuevo o importa un archivo Excel!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500 font-medium text-sm sm:text-base">No hay productos en la nube. ¡Agrega uno nuevo o importa un archivo Excel!</td></tr>`;
                 return;
             }
 
             listaFiltrada.forEach((p) => {
                 const final = Number(p.base || 0) * (1 + (Number(p.margen || 0) / 100));
-                const ultimaMod = p.ultimaModificacion ? `<span class="block text-xs text-cyan-400/80 mt-1 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="block text-xs text-slate-500 mt-1 font-mono">🕒 Sin cambios recientes</span>`;
+                const ultimaMod = p.ultimaModificacion ? `<span class="block text-[11px] text-cyan-400/80 mt-1 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="block text-[11px] text-slate-500 mt-1 font-mono">🕒 Sin cambios</span>`;
 
                 let optionsHTML = '';
                 const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Componentes', 'Tarjetas Gráficas', 'Accesorios', 'General'];
@@ -114,36 +112,36 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-800/40 transition group border-b border-slate-800/60';
                 tr.innerHTML = `
-                    <td class="p-4 font-mono font-medium text-base" style="color: #2323ff;">${p.sku || ''}</td>
-                    <td class="p-4">
-                        <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 w-full text-white py-1 transition font-medium text-base">
+                    <td class="p-3 sm:p-4 font-mono font-medium text-sm sm:text-base whitespace-nowrap" style="color: #2323ff;">${p.sku || ''}</td>
+                    <td class="p-3 sm:p-4 min-w-[200px]">
+                        <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-transparent border-b border-transparent hover:border-slate-700 w-full text-white py-1 transition font-medium text-sm sm:text-base">
                         ${ultimaMod}
                     </td>
-                    <td class="p-4">
-                        <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-900 border border-slate-800 rounded px-3 py-2 text-slate-200 text-base">
+                    <td class="p-3 sm:p-4 whitespace-nowrap">
+                        <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 text-sm sm:text-base">
                             ${optionsHTML}
                         </select>
                     </td>
-                    <td class="p-4">
+                    <td class="p-3 sm:p-4 whitespace-nowrap">
                         <div class="relative flex items-center">
-                            <span class="absolute left-3 text-slate-400 font-mono text-base">$</span>
-                            <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-8 pr-3 py-2 w-36 text-white font-mono text-base">
+                            <span class="absolute left-2.5 text-slate-400 font-mono text-sm">$</span>
+                            <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-7 pr-3 py-1.5 w-28 sm:w-36 text-white font-mono text-sm sm:text-base">
                         </div>
                     </td>
-                    <td class="p-4">
+                    <td class="p-3 sm:p-4 whitespace-nowrap">
                         <div class="relative flex items-center">
-                            <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-3 pr-8 py-2 w-28 text-white font-mono text-base">
-                            <span class="text-slate-500 absolute right-3 text-base">%</span>
+                            <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded pl-3 pr-7 py-1.5 w-20 sm:w-28 text-white font-mono text-sm sm:text-base">
+                            <span class="text-slate-500 absolute right-2.5 text-sm">%</span>
                         </div>
                     </td>
-                    <td class="p-4">
+                    <td class="p-3 sm:p-4 whitespace-nowrap">
                         <div class="relative flex items-center">
-                            <span class="absolute left-3 font-bold text-base" style="color: #2323ff;">$</span>
-                            <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded pl-8 pr-3 py-2 w-36 font-mono font-bold text-base neon-glow">
+                            <span class="absolute left-2.5 font-bold text-sm" style="color: #2323ff;">$</span>
+                            <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded pl-7 pr-3 py-1.5 w-28 sm:w-36 font-mono font-bold text-sm sm:text-base neon-glow">
                         </div>
                     </td>
-                    <td class="p-4 text-center">
-                        <button onclick="eliminarProducto('${p.id}')" class="text-slate-500 hover:text-rose-400 transition p-1 cursor-pointer text-lg" title="Eliminar producto">
+                    <td class="p-3 sm:p-4 text-center whitespace-nowrap">
+                        <button onclick="eliminarProducto('${p.id}')" class="text-slate-500 hover:text-rose-400 transition p-2 cursor-pointer text-base sm:text-lg" title="Eliminar producto">
                             ✕
                         </button>
                     </td>
@@ -277,46 +275,44 @@
         };
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 font-sans">
     <div class="max-w-6xl mx-auto">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-6">
-            <div class="flex items-center gap-4">
-                <!-- LOGO INTELIGENTE (Prueba Logo.png y si falla intenta con logo.png) -->
-                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain rounded-2xl bg-slate-900 border border-[#2323ff]/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
-                
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4 border-b border-slate-800 pb-6">
+            <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
+                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-900 border border-[#2323ff]/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
-                    <h1 class="text-3xl font-extrabold tracking-tight text-white">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                         TECNISEVEN <span style="color: #2323ff;" class="font-light">| Catálogo Nube</span>
                     </h1>
-                    <p class="text-slate-400 mt-1 text-base">Control avanzado de precios, sincronización y seguimiento de fluctuaciones.</p>
+                    <p class="text-slate-400 mt-1 text-xs sm:text-base">Control avanzado de precios, sincronización y seguimiento de fluctuaciones.</p>
                 </div>
             </div>
             
             <!-- Botones de Acción -->
-            <div class="flex flex-wrap gap-3">
-                <button onclick="exportarCSV()" class="bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-lg font-medium transition flex items-center gap-2 cursor-pointer text-base shadow-md">
+            <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
+                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-3 sm:px-4 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base shadow-md">
                     📥 Exportar Excel
                 </button>
                 
-                <label class="bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-lg font-medium transition flex items-center gap-2 cursor-pointer text-base shadow-md">
+                <label class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-3 sm:px-4 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base shadow-md">
                     📤 Importar Excel
                     <input type="file" accept=".csv" onchange="importarCSV(event)" class="hidden">
                 </label>
 
-                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition flex items-center gap-2 shadow-lg neon-glow cursor-pointer text-base">
+                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm sm:text-base">
                     + Nuevo Producto
                 </button>
             </div>
         </div>
 
         <!-- Buscador -->
-        <div class="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900/40 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
-            <div class="relative w-full md:w-96">
+        <div class="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between bg-slate-900/40 p-3 sm:p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+            <div class="relative w-full sm:w-96">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-base">🔍</span>
-                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU..." class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 w-full text-white text-base focus:border-[#2323ff]">
+                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU..." class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 w-full text-white text-sm sm:text-base focus:border-[#2323ff]">
             </div>
-            <div class="text-slate-300 text-base">
+            <div class="text-slate-300 text-sm sm:text-base text-right w-full sm:w-auto">
                 Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
             </div>
         </div>
@@ -326,17 +322,17 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-900/90 uppercase text-xs tracking-wider border-b border-slate-800" style="color: #2323ff;">
-                            <th class="p-4">SKU</th>
-                            <th class="p-4 cursor-pointer hover:text-white transition" onclick="cambiarOrden()">Producto / Modelo ↕</th>
-                            <th class="p-4">Categoría</th>
-                            <th class="p-4">Precio Base ($)</th>
-                            <th class="p-4">Margen (%)</th>
-                            <th class="p-4">Precio Final ($)</th>
-                            <th class="p-4 text-center">Acciones</th>
+                        <tr class="bg-slate-900/90 uppercase text-[11px] sm:text-xs tracking-wider border-b border-slate-800" style="color: #2323ff;">
+                            <th class="p-3 sm:p-4">SKU</th>
+                            <th class="p-3 sm:p-4 cursor-pointer hover:text-white transition" onclick="cambiarOrden()">Producto / Modelo ↕</th>
+                            <th class="p-3 sm:p-4">Categoría</th>
+                            <th class="p-3 sm:p-4">Precio Base ($)</th>
+                            <th class="p-3 sm:p-4">Margen (%)</th>
+                            <th class="p-3 sm:p-4">Precio Final ($)</th>
+                            <th class="p-3 sm:p-4 text-center">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-productos" class="divide-y divide-slate-800/60 text-base">
+                    <tbody id="tabla-productos" class="divide-y divide-slate-800/60 text-sm sm:text-base">
                         <!-- Carga dinámica -->
                     </tbody>
                 </table>
