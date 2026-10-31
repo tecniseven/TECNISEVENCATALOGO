@@ -240,23 +240,23 @@
             const lector = new FileReader();
             lector.onload = function(e) {
                 const contenido = e.target.result;
-                const lineas = contenido.split("\n");
+                let lineas = contenido.split("\n");
                 let contadorImportados = 0;
 
                 for (let i = 1; i < lineas.length; i++) {
-                    const linea = lineas[i].trim();
+                    let linea = lineas[i].trim();
                     if (!linea) continue;
 
-                    const columnas = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linea.split(',');
+                    let columnas = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linea.split(',');
                     if (columnas.length >= 5) {
-                        const sku = columnas[0].replace(/"/g, '').trim();
-                        const nombre = columnas[1].replace(/"/g, '').trim();
-                        const categoria = columnas[2].replace(/"/g, '').trim();
-                        const base = parseFloat(columnas[3]) || 0;
-                        const margen = parseFloat(columnas[4]) || 0;
+                        let sku = columnas[0].replace(/"/g, '').trim();
+                        let nombre = columnas[1].replace(/"/g, '').trim();
+                        let categoria = columnas[2].replace(/"/g, '').trim();
+                        let base = parseFloat(columnas[3]) || 0;
+                        let margen = parseFloat(columnas[4]) || 0;
 
-                        const id = 'prod_' + Date.now() + '_' + i;
-                        const productoNuevo = { 
+                        let id = 'prod_' + Date.now() + '_' + i;
+                        let productoNuevo = { 
                             id, 
                             sku, 
                             nombre, 
@@ -282,9 +282,8 @@
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-6">
             <div class="flex items-center gap-4">
-                <!-- LOGO MÁS GRANDE (h-20 w-auto) -->
-                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain rounded-2xl bg-slate-900 border border-[#2323ff]/40 p-2 neon-glow" onerror="this.style.display='none'; document.getElementById('fallback-icon').style.display='flex';">
-                <div id="fallback-icon" class="hidden bg-[#2323ff]/15 border border-[#2323ff]/40 p-3 rounded-2xl text-[#2323ff] text-3xl neon-glow items-center justify-center">⚡</div>
+                <!-- LOGO INTELIGENTE (Prueba Logo.png y si falla intenta con logo.png) -->
+                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain rounded-2xl bg-slate-900 border border-[#2323ff]/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-white">
