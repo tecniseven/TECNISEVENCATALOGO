@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=23" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=24" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -186,7 +186,6 @@
             if (data) {
                 Object.keys(data).forEach(key => {
                     let p = data[key];
-                    // Compatibilidad con datos antiguos: si no tiene 'final' pero tiene 'base' y 'margen'
                     if (p.final === undefined && p.base !== undefined) {
                         const m = Number(p.margen !== undefined ? p.margen : 20);
                         p.final = Number(p.base) * (1 + (m / 100));
@@ -275,7 +274,7 @@
                 const ultimaMod = p.ultimaModificacion ? `<span class="text-[10px] text-cyan-400 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-[10px] text-slate-400 font-mono">🕒 Sin cambios recientes</span>`;
 
                 let optionsHTML = '';
-                const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Componentes', 'Tarjetas Gráficas', 'Almacenamiento', 'Accesorios', 'General'];
+                const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Placas Madre', 'Fuentes de Poder', 'Memorias RAM', 'Tarjetas Gráficas', 'Almacenamiento', 'Accesorios', 'General'];
                 categoriasDisponibles.forEach(cat => {
                     const selected = (p.categoria === cat) ? 'selected' : '';
                     optionsHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
@@ -299,7 +298,7 @@
 
                     <!-- Fila de Descripción Corta -->
                     <div class="mb-4">
-                        <input type="text" value="${p.descripcion || ''}" onchange="actualizarDato('${p.id}', 'descripcion', this.value)" class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-slate-300 text-xs focus:border-cyan-400" placeholder="Descripción corta o especificaciones clave (ej. 1TB NVMe Gen4, 16GB VRAM...)">
+                        <input type="text" value="${p.descripcion || ''}" onchange="actualizarDato('${p.id}', 'descripcion', this.value)" class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-slate-300 text-xs focus:border-cyan-400" placeholder="Descripción corta o especificaciones clave...">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
@@ -453,8 +452,14 @@
 
             const prompt = `Actúa como un sistema experto de extracción de datos para un catálogo de tecnología. Analiza el siguiente texto desordenado de un proveedor y devuelve un JSON puro (un array de objetos) con los productos detectados. Cada objeto debe tener exactamente estas propiedades:
 - "nombre": Nombre limpio del producto.
-- "descripcion": Especificaciones clave (memoria VRAM, frecuencia, Hz, capacidad GB/TB, velocidad lectura/escritura, etc.).
-- "categoria": Debe ser estrictamente una de estas opciones: ["Portátiles", "Monitores", "Periféricos", "Componentes", "Tarjetas Gráficas", "Almacenamiento", "Accesorios", "General"]. Si es un disco duro, SSD, M.2, NVMe o memoria flash, asígnalo estrictamente a "Almacenamiento".
+- "descripcion": Especificaciones clave (memoria VRAM, frecuencia, Hz, capacidad GB/TB, potencia W, chipset, etc.).
+- "categoria": Debe ser estrictamente una de estas opciones: ["Portátiles", "Monitores", "Periféricos", "Placas Madre", "Fuentes de Poder", "Memorias RAM", "Tarjetas Gráficas", "Almacenamiento", "Accesorios", "General"]. 
+  Reglas de clasificación:
+  * Placas madre, motherboard, zócalos LGA/AM4/AM5 -> "Placas Madre"
+  * Fuentes de poder, power supply, W, 80 Plus -> "Fuentes de Poder"
+  * Memorias RAM, módulos DDR4, DDR5, kits de memoria -> "Memorias RAM"
+  * Discos SSD, M.2, NVMe, HDD -> "Almacenamiento"
+  * Tarjetas de video, GPU, RTX, GTX, Radeon -> "Tarjetas Gráficas"
 - "base": Precio numérico base en dólares del proveedor (ej: 850.50).
 
 Texto del proveedor:
@@ -682,7 +687,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             </div>
         </div>
 
-        <!-- FILTROS RÁPIDOS POR CATEGORÍA CON ÍCONOS -->
+        <!-- FILTROS RÁPIDOS POR CATEGORÍA CON NUEVAS OPCIONES -->
         <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-3 rounded-2xl border border-slate-800 backdrop-blur-md">
             <span class="text-[10px] font-mono text-cyan-400 mr-2 font-bold">FILTRAR POR:</span>
             <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition">
@@ -691,14 +696,20 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             <button onclick="filtrarPorCategoria('Tarjetas Gráficas')" data-cat="Tarjetas Gráficas" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
                 ⚡ Tarjetas Gráficas
             </button>
+            <button onclick="filtrarPorCategoria('Placas Madre')" data-cat="Placas Madre" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                🧬 Placas Madre
+            </button>
+            <button onclick="filtrarPorCategoria('Fuentes de Poder')" data-cat="Fuentes de Poder" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                🔌 Fuentes de Poder
+            </button>
+            <button onclick="filtrarPorCategoria('Memorias RAM')" data-cat="Memorias RAM" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                ⚡ Memorias RAM
+            </button>
             <button onclick="filtrarPorCategoria('Monitores')" data-cat="Monitores" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
                 🖥️ Monitores
             </button>
             <button onclick="filtrarPorCategoria('Portátiles')" data-cat="Portátiles" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
                 💻 Portátiles
-            </button>
-            <button onclick="filtrarPorCategoria('Componentes')" data-cat="Componentes" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                🧩 Componentes
             </button>
             <button onclick="filtrarPorCategoria('Almacenamiento')" data-cat="Almacenamiento" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
                 💾 Almacenamiento
@@ -746,7 +757,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
-                    <textarea id="texto-pegado" rows="6" placeholder="Ej: SSD M.2 NVMe Kington 1TB $65 - RTX 5060 Ti 16gb asus dual $880..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
+                    <textarea id="texto-pegado" rows="6" placeholder="Ej: Placa Madre B650M $120 - Fuente 750W 80+ Gold $90 - RAM 16GB DDR5 $60..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-2">
                     <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Cancelar</button>
