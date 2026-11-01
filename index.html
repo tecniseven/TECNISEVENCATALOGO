@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
+    <!-- FUENTE CIBERNÉTICA (ORBITRON) -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
+
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=17" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=19" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -20,30 +23,82 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* APLICAR FUENTE FUTURISTA A TODO EL SITIO */
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* FONDO TECNOLÓGICO Y CIBERNÉTICO PROFUNDO */
+        .cyber-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(35, 35, 255, 0.25) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 255, 255, 0.2) 0%, transparent 40%),
+                linear-gradient(to right, rgba(35, 35, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 50px 50px, 50px 50px;
+        }
+
+        /* MARCAS DE AGUA GIGANTES Y LLAMATIVAS DE TECNISEVEN Y 7 */
+        .watermark-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            opacity: 0.12;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4rem;
+            padding: 4rem;
+        }
+        .wm-text {
+            font-size: 7rem;
+            font-weight: 900;
+            color: #3b82f6;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            transform: rotate(-15deg);
+            white-space: nowrap;
+        }
+        .wm-number {
+            font-size: 22rem;
+            font-weight: 900;
+            color: #00ffff;
+            transform: rotate(10deg);
+            line-height: 0.8;
+            text-shadow: 0 0 30px rgba(0,255,255,0.5);
+        }
+
         .neon-glow {
-            box-shadow: 0 0 15px rgba(35, 35, 255, 0.4);
+            box-shadow: 0 0 20px rgba(35, 35, 255, 0.5);
         }
         .neon-glow-strong {
-            box-shadow: 0 0 35px rgba(35, 35, 255, 0.8), inset 0 0 15px rgba(35, 35, 255, 0.5);
+            box-shadow: 0 0 40px rgba(35, 35, 255, 0.9), inset 0 0 20px rgba(35, 35, 255, 0.6);
         }
         input:focus, select:focus, textarea:focus {
-            border-color: #2323ff !important;
-            box-shadow: 0 0 10px rgba(35, 35, 255, 0.4);
+            border-color: #00ffff !important;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
             outline: none;
         }
         .input-precio-final {
-            background-color: #0b0b1a !important;
-            color: #ffffff !important;
+            background-color: #050511 !important;
+            color: #00ffff !important;
             border: 2px solid #2323ff !important;
         }
         .bar-container {
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(35, 35, 255, 0.6);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.7), 0 0 50px rgba(35, 35, 255, 0.8);
         }
         .cat-btn-active {
             background-color: #2323ff !important;
             color: #ffffff !important;
             border-color: #00ffff !important;
-            box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
         }
     </style>
 
@@ -153,15 +208,14 @@
         window.filtrarPorCategoria = (cat) => {
             categoriaFiltroSeleccionada = cat;
             
-            // Actualizar apariencia visual de los botones de filtro
             const botones = document.querySelectorAll('.btn-cat-filter');
             botones.forEach(btn => {
                 if (btn.getAttribute('data-cat') === cat) {
                     btn.classList.add('cat-btn-active');
-                    btn.classList.remove('bg-slate-900', 'text-slate-400');
+                    btn.classList.remove('bg-slate-900/90', 'text-slate-300');
                 } else {
                     btn.classList.remove('cat-btn-active');
-                    btn.classList.add('bg-slate-900', 'text-slate-400');
+                    btn.classList.add('bg-slate-900/90', 'text-slate-300');
                 }
             });
 
@@ -199,13 +253,13 @@
             container.innerHTML = '';
 
             if (listaFiltrada.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-500 font-medium text-base bg-slate-900/60 rounded-2xl border border-slate-800">No hay productos en la categoría seleccionada o que coincidan con la búsqueda.</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-slate-400 font-medium text-sm bg-slate-900/80 rounded-2xl border border-slate-700 backdrop-blur-md">No hay productos en la categoría seleccionada o que coincidan con la búsqueda.</div>`;
                 return;
             }
 
             listaFiltrada.forEach((p) => {
                 const final = Number(p.base || 0) * (1 + (Number(p.margen || 0) / 100));
-                const ultimaMod = p.ultimaModificacion ? `<span class="text-xs text-cyan-400/80 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-xs text-slate-500 font-mono">🕒 Sin cambios recientes</span>`;
+                const ultimaMod = p.ultimaModificacion ? `<span class="text-[10px] text-cyan-400 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-[10px] text-slate-400 font-mono">🕒 Sin cambios recientes</span>`;
 
                 let optionsHTML = '';
                 const categoriasDisponibles = ['Portátiles', 'Monitores', 'Periféricos', 'Componentes', 'Tarjetas Gráficas', 'Almacenamiento', 'Accesorios', 'General'];
@@ -215,55 +269,55 @@
                 });
 
                 const card = document.createElement('div');
-                card.className = 'bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition rounded-2xl p-5 mb-4 shadow-xl backdrop-blur-md';
+                card.className = 'bg-slate-900/90 border border-slate-700/80 hover:border-cyan-500 transition rounded-2xl p-5 mb-4 shadow-2xl backdrop-blur-xl relative z-10';
                 card.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 pb-3 border-b border-slate-800">
                         <div class="flex items-center gap-3 w-full sm:w-auto">
-                            <span class="font-mono text-sm font-bold px-3 py-1 rounded-lg bg-[#2323ff]/15 text-[#2323ff] border border-[#2323ff]/30">${p.sku || ''}</span>
+                            <span class="font-mono text-xs font-bold px-3 py-1 rounded-lg bg-[#2323ff]/20 text-cyan-300 border border-[#2323ff]/50">${p.sku || ''}</span>
                             <div class="w-full sm:w-96">
-                                <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-white text-base font-semibold focus:border-[#2323ff]" placeholder="Nombre del producto">
+                                <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-slate-950/90 border border-slate-700 rounded-lg px-3 py-1.5 w-full text-white text-sm font-bold focus:border-cyan-400" placeholder="Nombre del producto">
                             </div>
                         </div>
                         <div class="flex items-center justify-between w-full sm:w-auto gap-4">
                             ${ultimaMod}
-                            <button onclick="eliminarProducto('${p.id}')" class="text-slate-500 hover:text-rose-400 transition p-2 cursor-pointer text-sm font-bold bg-slate-950 rounded-lg border border-slate-800 px-3">✕ Eliminar</button>
+                            <button onclick="eliminarProducto('${p.id}')" class="text-slate-400 hover:text-rose-400 transition p-2 cursor-pointer text-xs font-bold bg-slate-950 rounded-lg border border-slate-800 px-3">✕ Eliminar</button>
                         </div>
                     </div>
 
                     <!-- Fila de Descripción Corta -->
                     <div class="mb-4">
-                        <input type="text" value="${p.descripcion || ''}" onchange="actualizarDato('${p.id}', 'descripcion', this.value)" class="bg-slate-950/60 border border-slate-800/80 rounded-lg px-3 py-1.5 w-full text-slate-300 text-xs focus:border-[#2323ff]" placeholder="Descripción corta o especificaciones clave (ej. 1TB NVMe Gen4, 16GB VRAM...)">
+                        <input type="text" value="${p.descripcion || ''}" onchange="actualizarDato('${p.id}', 'descripcion', this.value)" class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-slate-300 text-xs focus:border-cyan-400" placeholder="Descripción corta o especificaciones clave (ej. 1TB NVMe Gen4, 16GB VRAM...)">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
                         <div>
-                            <label class="text-xs text-slate-400 block mb-1">Categoría</label>
-                            <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 text-base w-full">
+                            <label class="text-[10px] text-slate-400 block mb-1">CATEGORÍA</label>
+                            <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs w-full">
                                 ${optionsHTML}
                             </select>
                         </div>
 
                         <div>
-                            <label class="text-xs text-slate-400 block mb-1">Precio Base ($)</label>
+                            <label class="text-[10px] text-slate-400 block mb-1">PRECIO BASE ($)</label>
                             <div class="relative flex items-center">
-                                <span class="absolute left-3 text-slate-400 font-mono">$</span>
-                                <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-base">
+                                <span class="absolute left-3 text-cyan-400 font-mono">$</span>
+                                <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-xs font-bold">
                             </div>
                         </div>
 
                         <div>
-                            <label class="text-xs text-slate-400 block mb-1">Margen Ind. (%)</label>
+                            <label class="text-[10px] text-slate-400 block mb-1">MARGEN IND. (%)</label>
                             <div class="relative flex items-center">
-                                <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-8 py-2 w-full text-white font-mono text-base">
-                                <span class="absolute right-3 text-slate-500">%</span>
+                                <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-2 w-full text-white font-mono text-xs font-bold">
+                                <span class="absolute right-3 text-slate-400">%</span>
                             </div>
                         </div>
 
                         <div>
-                            <label class="text-xs text-cyan-400 font-semibold block mb-1">Precio Final ($)</label>
+                            <label class="text-[10px] text-cyan-400 font-bold block mb-1">PRECIO FINAL ($)</label>
                             <div class="relative flex items-center">
-                                <span class="absolute left-3 font-bold" style="color: #2323ff;">$</span>
-                                <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-base neon-glow">
+                                <span class="absolute left-3 font-bold text-cyan-300">$</span>
+                                <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
                             </div>
                         </div>
                     </div>
@@ -429,22 +483,22 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             container.innerHTML = '';
 
             if (productosTemporales.length === 0) {
-                container.innerHTML = `<p class="text-slate-500 text-center py-4">No se detectaron productos.</p>`;
+                container.innerHTML = `<p class="text-slate-400 text-center py-4">No se detectaron productos.</p>`;
                 return;
             }
 
             productosTemporales.forEach((p, index) => {
                 const item = document.createElement('div');
-                item.className = 'bg-slate-950 border border-slate-800 rounded-xl p-3 mb-3 flex flex-col gap-2';
+                item.className = 'bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3 flex flex-col gap-2';
                 item.innerHTML = `
                     <div class="flex justify-between items-center">
                         <span class="text-xs font-mono text-cyan-400 font-bold">Ítem #${index + 1} (${p.categoria})</span>
                         <button onclick="eliminarTemporal(${index})" class="text-rose-400 hover:text-rose-300 text-xs font-bold cursor-pointer">✕ Quitar</button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold">
-                        <input type="text" value="${p.descripcion || ''}" onchange="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs" placeholder="Descripción">
-                        <input type="number" step="0.01" value="${p.base || 0}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Precio Base $">
+                        <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold">
+                        <input type="text" value="${p.descripcion || ''}" onchange="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs" placeholder="Descripción">
+                        <input type="number" step="0.01" value="${p.base || 0}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Precio Base $">
                     </div>
                 `;
                 container.appendChild(item);
@@ -518,15 +572,26 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
         });
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 font-sans relative">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 sm:p-8 relative">
+
+    <!-- FONDO CIBERNÉTICO DINÁMICO -->
+    <div class="cyber-bg"></div>
+
+    <!-- MARCAS DE AGUA GIGANTES DE TECNISEVEN Y 7 -->
+    <div class="watermark-container">
+        <div class="wm-text">TECNISEVEN</div>
+        <div class="wm-number">7</div>
+        <div class="wm-number">7</div>
+        <div class="wm-text">TECNISEVEN</div>
+    </div>
 
     <!-- PANTALLA DE CARGA CON RELÁMPAGOS -->
     <div id="loading-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
         <div class="relative mb-8">
-            <img src="Logo.png" alt="Cargando TECNISEVEN" class="h-36 sm:h-44 w-auto object-contain rounded-3xl bg-slate-900 border-2 border-[#2323ff] p-5 neon-glow-strong animate-pulse" onerror="this.onerror=null; this.src='logo.png';">
+            <img src="Logo.png" alt="Cargando TECNISEVEN" class="h-36 sm:h-44 w-auto object-contain rounded-3xl bg-slate-900 border-2 border-cyan-400 p-5 neon-glow-strong animate-pulse" onerror="this.onerror=null; this.src='logo.png';">
         </div>
         <h2 class="text-3xl font-black tracking-widest text-white mb-2 uppercase">TECNISEVEN</h2>
-        <p class="text-cyan-400 text-sm font-mono tracking-widest uppercase mb-8">Cargando Sistema & Sincronizando Datos...</p>
+        <p class="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-8">Cargando Sistema & Sincronizando Datos...</p>
         
         <div class="w-80 sm:w-96 h-6 bg-slate-900/90 rounded-full overflow-hidden border-2 border-cyan-400 bar-container p-0.5 relative">
             <canvas id="canvas-rayos" width="380" height="20" class="w-full h-full rounded-full block"></canvas>
@@ -534,27 +599,27 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
     </div>
 
     <!-- PANTALLA DE LOGIN -->
-    <div id="login-screen" class="hidden fixed inset-0 z-40 bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl neon-glow">
+    <div id="login-screen" class="hidden fixed inset-0 z-40 bg-slate-950/90 flex flex-col items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-slate-900/95 border border-slate-700 rounded-3xl w-full max-w-md p-8 shadow-2xl neon-glow">
             <div class="text-center mb-6">
-                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain mx-auto mb-4 rounded-2xl bg-slate-950 border border-[#2323ff]/50 p-2" onerror="this.onerror=null; this.src='logo.png';">
+                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain mx-auto mb-4 rounded-2xl bg-slate-950 border border-cyan-400/50 p-2" onerror="this.onerror=null; this.src='logo.png';">
                 <h2 class="text-2xl font-black tracking-wider text-white">TECNISEVEN</h2>
-                <p class="text-slate-400 text-xs font-mono tracking-wider mt-1">ACCESO RESTRINGIDO</p>
+                <p class="text-cyan-400 text-xs font-mono tracking-wider mt-1">ACCESO RESTRINGIDO</p>
             </div>
 
             <form onsubmit="iniciarSesion(event)" class="space-y-4">
                 <div>
                     <label class="text-xs text-slate-400 block mb-1 font-mono">USUARIO</label>
-                    <input type="text" id="login-user" required placeholder="Ingresa tu usuario" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-[#2323ff]">
+                    <input type="text" id="login-user" required placeholder="Ingresa tu usuario" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:border-cyan-400">
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1 font-mono font-bold">CONTRASEÑA</label>
-                    <input type="password" id="login-pass" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-[#2323ff]">
+                    <input type="password" id="login-pass" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:border-cyan-400">
                 </div>
                 
-                <div id="login-error" class="hidden text-rose-400 text-xs text-center font-medium bg-rose-950/30 border border-rose-900/50 p-2.5 rounded-xl"></div>
+                <div id="login-error" class="hidden text-rose-400 text-xs text-center font-medium bg-rose-950/40 border border-rose-900 p-2.5 rounded-xl"></div>
 
-                <button type="submit" style="background-color: #2323ff;" class="w-full hover:bg-blue-700 text-white py-3 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer text-sm tracking-wider uppercase">
+                <button type="submit" style="background-color: #2323ff;" class="w-full hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer text-xs tracking-wider uppercase">
                     Ingresar al Catálogo
                 </button>
             </form>
@@ -562,14 +627,14 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
     </div>
 
     <!-- CONTENEDOR PRINCIPAL -->
-    <div id="app-container" class="hidden max-w-5xl mx-auto">
+    <div id="app-container" class="hidden max-w-5xl mx-auto relative z-10">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 border-b border-slate-800 pb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 border-b border-slate-800 pb-6 bg-slate-900/60 p-6 rounded-3xl backdrop-blur-xl border border-slate-700/60 shadow-2xl">
             <div class="flex items-center gap-4 w-full md:w-auto">
-                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-900 border border-[#2323ff]/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
+                <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-950 border border-cyan-400/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                        TECNISEVEN <span style="color: #2323ff;" class="font-light">| Catálogo Nube</span>
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                        TECNISEVEN <span class="text-cyan-400 font-light">| Catálogo Nube</span>
                     </h1>
                     <p class="text-slate-400 mt-1 text-xs sm:text-sm">Control avanzado de precios y sincronización en tiempo real.</p>
                 </div>
@@ -577,60 +642,60 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             
             <!-- Botones de Acción -->
             <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
-                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
                     📥 Exportar
                 </button>
                 
-                <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900 border border-slate-700 hover:border-[#2323ff] text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
                     ✨ Importar con IA
                 </button>
 
-                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-sm">
+                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-xs">
                     + Nuevo Producto
                 </button>
 
-                <button onclick="cerrarSesion()" class="bg-rose-950/40 border border-rose-900/60 hover:bg-rose-900/60 text-rose-300 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md">
+                <button onclick="cerrarSesion()" class="bg-rose-950/40 border border-rose-900/60 hover:bg-rose-900/60 text-rose-300 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
                     🔒 Salir
                 </button>
             </div>
         </div>
 
-        <!-- FILTROS RÁPIDOS POR CATEGORÍA -->
-        <div class="mb-4 flex flex-wrap gap-2 items-center">
-            <span class="text-xs font-mono text-slate-400 mr-2">FILTRAR POR:</span>
-            <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition">
-                Todos
+        <!-- FILTROS RÁPIDOS POR CATEGORÍA CON ÍCONOS -->
+        <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-3 rounded-2xl border border-slate-800 backdrop-blur-md">
+            <span class="text-[10px] font-mono text-cyan-400 mr-2 font-bold">FILTRAR POR:</span>
+            <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition">
+                🌐 Todos
             </button>
-            <button onclick="filtrarPorCategoria('Tarjetas Gráficas')" data-cat="Tarjetas Gráficas" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
-                Tarjetas Gráficas
+            <button onclick="filtrarPorCategoria('Tarjetas Gráficas')" data-cat="Tarjetas Gráficas" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                ⚡ Tarjetas Gráficas
             </button>
-            <button onclick="filtrarPorCategoria('Monitores')" data-cat="Monitores" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
-                Monitores
+            <button onclick="filtrarPorCategoria('Monitores')" data-cat="Monitores" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                🖥️ Monitores
             </button>
-            <button onclick="filtrarPorCategoria('Portátiles')" data-cat="Portátiles" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
-                Portátiles
+            <button onclick="filtrarPorCategoria('Portátiles')" data-cat="Portátiles" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                💻 Portátiles
             </button>
-            <button onclick="filtrarPorCategoria('Componentes')" data-cat="Componentes" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
-                Componentes
+            <button onclick="filtrarPorCategoria('Componentes')" data-cat="Componentes" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                🧩 Componentes
             </button>
-            <button onclick="filtrarPorCategoria('Almacenamiento')" data-cat="Almacenamiento" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
+            <button onclick="filtrarPorCategoria('Almacenamiento')" data-cat="Almacenamiento" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
                 💾 Almacenamiento
             </button>
-            <button onclick="filtrarPorCategoria('Periféricos')" data-cat="Periféricos" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
-                Periféricos
+            <button onclick="filtrarPorCategoria('Periféricos')" data-cat="Periféricos" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                ⌨️ Periféricos
             </button>
-            <button onclick="filtrarPorCategoria('General')" data-cat="General" class="btn-cat-filter bg-slate-900 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold cursor-pointer transition hover:text-white">
-                General
+            <button onclick="filtrarPorCategoria('General')" data-cat="General" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
+                📦 General
             </button>
         </div>
 
         <!-- Buscador -->
-        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-700 backdrop-blur-md shadow-lg">
             <div class="relative w-full sm:w-96">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
-                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU, descripción..." class="bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-sm focus:border-[#2323ff]">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyan-400">🔍</span>
+                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU, descripción..." class="bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-xs focus:border-cyan-400">
             </div>
-            <div class="text-slate-300 text-sm text-right w-full sm:w-auto">
+            <div class="text-slate-300 text-xs text-right w-full sm:w-auto">
                 Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
             </div>
         </div>
@@ -642,12 +707,12 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
     </div>
 
     <!-- VENTANA EMERGENTE (MODAL) CON VISTA PREVIA DE IA -->
-    <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+    <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
                 <span>✨</span> Importación Inteligente con Vista Previa
             </h3>
-            <p class="text-slate-400 text-sm mb-4">
+            <p class="text-slate-400 text-xs mb-4">
                 Pega tu lista de proveedor. La IA estructurará los datos y podrás revisarlos y editarlos antes de subirlos a la nube.
             </p>
 
@@ -655,15 +720,15 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             <div id="step-input" class="flex flex-col gap-4">
                 <div>
                     <label class="text-xs text-cyan-400 font-mono block mb-1">GEMINI API KEY</label>
-                    <input type="password" id="gemini-api-key" placeholder="Pega tu API Key de Google AI Studio..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm focus:border-[#2323ff]">
+                    <input type="password" id="gemini-api-key" placeholder="Pega tu API Key de Google AI Studio..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400">
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
-                    <textarea id="texto-pegado" rows="6" placeholder="Ej: SSD M.2 NVMe Kington 1TB $65 - RTX 5060 Ti 16gb asus dual $880..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono text-sm focus:border-[#2323ff]"></textarea>
+                    <textarea id="texto-pegado" rows="6" placeholder="Ej: SSD M.2 NVMe Kington 1TB $65 - RTX 5060 Ti 16gb asus dual $880..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-2">
-                    <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Cancelar</button>
-                    <button id="btn-ia" onclick="analizarConIA()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">✨ Analizar y Ver Vista Previa</button>
+                    <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Cancelar</button>
+                    <button id="btn-ia" onclick="analizarConIA()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">✨ Analizar y Ver Vista Previa</button>
                 </div>
             </div>
 
@@ -676,8 +741,8 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                 </div>
 
                 <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-800">
-                    <button onclick="document.getElementById('step-preview').classList.add('hidden'); document.getElementById('step-input').classList.remove('hidden');" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">Volver</button>
-                    <button onclick="guardarImportacionIA()" style="background-color: #2323ff;" class="hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg neon-glow cursor-pointer">💾 Confirmar y Guardar en la Nube</button>
+                    <button onclick="document.getElementById('step-preview').classList.add('hidden'); document.getElementById('step-input').classList.remove('hidden');" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Volver</button>
+                    <button onclick="guardarImportacionIA()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">💾 Confirmar y Guardar en la Nube</button>
                 </div>
             </div>
         </div>
