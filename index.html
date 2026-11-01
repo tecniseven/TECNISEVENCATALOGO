@@ -8,11 +8,11 @@
     <!-- FUENTE CIBERNÉTICA (ORBITRON) -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
 
-    <!-- LIBRERÍA EXCEL (SheetJS) PARA EXPORTACIONES PROFESIONALES -->
+    <!-- LIBRERÍA EXCEL (SheetJS) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=22" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=23" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -185,7 +185,13 @@
             productos = [];
             if (data) {
                 Object.keys(data).forEach(key => {
-                    productos.push({ id: key, ...data[key] });
+                    let p = data[key];
+                    // Compatibilidad con datos antiguos: si no tiene 'final' pero tiene 'base' y 'margen'
+                    if (p.final === undefined && p.base !== undefined) {
+                        const m = Number(p.margen !== undefined ? p.margen : 20);
+                        p.final = Number(p.base) * (1 + (m / 100));
+                    }
+                    productos.push({ id: key, ...p });
                 });
             }
             renderizar();
@@ -259,7 +265,7 @@
 
             listaFiltrada.forEach((p) => {
                 const baseVal = Number(p.base || 0);
-                const finalVal = Number(p.final || 0);
+                const finalVal = Number(p.final || (baseVal * 1.20));
                 
                 let margenCalculado = 0;
                 if (baseVal > 0 && finalVal > 0) {
@@ -319,7 +325,7 @@
                             <label class="text-[10px] text-cyan-400 font-bold block mb-1">PRECIO DE VENTA ($)</label>
                             <div class="relative flex items-center">
                                 <span class="absolute left-3 font-bold text-cyan-300">$</span>
-                                <input type="number" step="0.01" value="${finalVal}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
+                                <input type="number" step="0.01" value="${finalVal.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
                             </div>
                         </div>
                     </div>
@@ -376,17 +382,15 @@
             }
         };
 
-        // --- EXPORTACIÓN PROFESIONAL A EXCEL (.XLSX) ---
         window.exportarExcel = () => {
             if (productos.length === 0) {
                 alert("No hay productos para exportar.");
                 return;
             }
 
-            // Preparar datos ordenados y limpios para las celdas de Excel
             const datosExportar = productos.map(p => {
                 const base = Number(p.base || 0);
-                const venta = Number(p.final || 0);
+                const venta = Number(p.final || (base * 1.20));
                 let gananciaPct = base > 0 ? (((venta / base) - 1) * 100).toFixed(1) + '%' : '0%';
 
                 return {
@@ -401,25 +405,15 @@
                 };
             });
 
-            // Crear hoja de trabajo y libro de Excel
             const worksheet = XLSX.utils.json_to_sheet(datosExportar);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Catálogo TECNISEVEN");
 
-            // Ajustar automáticamente el ancho de las columnas para que no se encimen los textos
             const colWidths = [
-                {wch: 12}, // SKU
-                {wch: 30}, // Nombre
-                {wch: 35}, // Descripción
-                {wch: 18}, // Categoría
-                {wch: 15}, // Base
-                {wch: 18}, // Venta
-                {wch: 16}, // Ganancia
-                {wch: 20}  // Modificación
+                {wch: 12}, {wch: 30}, {wch: 35}, {wch: 18}, {wch: 15}, {wch: 18}, {wch: 16}, {wch: 20}
             ];
             worksheet['!cols'] = colWidths;
 
-            // Descargar archivo profesional .xlsx
             XLSX.writeFile(workbook, "Catalogo_Tecniseven.xlsx");
         };
 
@@ -670,7 +664,6 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             
             <!-- Botones de Acción -->
             <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
-                <!-- BOTÓN CAMBIADO A EXPORTAR EXCEL PROFESIONAL -->
                 <button onclick="exportarExcel()" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
                     📊 Exportar Excel
                 </button>
