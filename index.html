@@ -8,8 +8,11 @@
     <!-- FUENTE CIBERNÉTICA (ORBITRON) -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
 
+    <!-- LIBRERÍA EXCEL (SheetJS) PARA EXPORTACIONES PROFESIONALES -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=19" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=22" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -23,7 +26,6 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* APLICAR FUENTE FUTURISTA A TODO EL SITIO */
         body {
             font-family: 'Orbitron', sans-serif;
             background-color: #020617;
@@ -31,7 +33,6 @@
             overflow-x: hidden;
         }
 
-        /* FONDO TECNOLÓGICO Y CIBERNÉTICO PROFUNDO */
         .cyber-bg {
             position: fixed;
             inset: 0;
@@ -44,7 +45,6 @@
             background-size: 100% 100%, 100% 100%, 50px 50px, 50px 50px;
         }
 
-        /* MARCAS DE AGUA GIGANTES Y LLAMATIVAS DE TECNISEVEN Y 7 */
         .watermark-container {
             position: fixed;
             inset: 0;
@@ -258,7 +258,14 @@
             }
 
             listaFiltrada.forEach((p) => {
-                const final = Number(p.base || 0) * (1 + (Number(p.margen || 0) / 100));
+                const baseVal = Number(p.base || 0);
+                const finalVal = Number(p.final || 0);
+                
+                let margenCalculado = 0;
+                if (baseVal > 0 && finalVal > 0) {
+                    margenCalculado = (((finalVal / baseVal) - 1) * 100).toFixed(1);
+                }
+
                 const ultimaMod = p.ultimaModificacion ? `<span class="text-[10px] text-cyan-400 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-[10px] text-slate-400 font-mono">🕒 Sin cambios recientes</span>`;
 
                 let optionsHTML = '';
@@ -289,9 +296,12 @@
                         <input type="text" value="${p.descripcion || ''}" onchange="actualizarDato('${p.id}', 'descripcion', this.value)" class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-slate-300 text-xs focus:border-cyan-400" placeholder="Descripción corta o especificaciones clave (ej. 1TB NVMe Gen4, 16GB VRAM...)">
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">CATEGORÍA</label>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-[10px] text-slate-400 block">CATEGORÍA</label>
+                                <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60" title="Margen de ganancia calculado">📊 Ganancia: +${margenCalculado}%</span>
+                            </div>
                             <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs w-full">
                                 ${optionsHTML}
                             </select>
@@ -301,23 +311,15 @@
                             <label class="text-[10px] text-slate-400 block mb-1">PRECIO BASE ($)</label>
                             <div class="relative flex items-center">
                                 <span class="absolute left-3 text-cyan-400 font-mono">$</span>
-                                <input type="number" step="0.01" value="${p.base || 0}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-xs font-bold">
+                                <input type="number" step="0.01" value="${baseVal}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-xs font-bold">
                             </div>
                         </div>
 
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">MARGEN IND. (%)</label>
-                            <div class="relative flex items-center">
-                                <input type="number" step="0.1" value="${p.margen || 0}" onchange="actualizarMargen('${p.id}', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-8 py-2 w-full text-white font-mono text-xs font-bold">
-                                <span class="absolute right-3 text-slate-400">%</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] text-cyan-400 font-bold block mb-1">PRECIO FINAL ($)</label>
+                            <label class="text-[10px] text-cyan-400 font-bold block mb-1">PRECIO DE VENTA ($)</label>
                             <div class="relative flex items-center">
                                 <span class="absolute left-3 font-bold text-cyan-300">$</span>
-                                <input type="number" step="0.01" value="${final.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
+                                <input type="number" step="0.01" value="${finalVal}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
                             </div>
                         </div>
                     </div>
@@ -344,20 +346,10 @@
             }
         };
 
-        window.actualizarMargen = (id, valor) => {
+        window.actualizarPrecioFinal = (id, valor) => {
             const prod = productos.find(p => String(p.id) === String(id));
             if (prod) {
-                prod.margen = parseFloat(valor) || 0;
-                prod.ultimaModificacion = obtenerFechaActual();
-                window.guardarProductoNube(prod);
-            }
-        };
-
-        window.actualizarPrecioFinal = (id, valor) => {
-            const finalVal = parseFloat(valor);
-            const prod = productos.find(p => String(p.id) === String(id));
-            if (prod && !isNaN(finalVal) && prod.base > 0) {
-                prod.margen = parseFloat((((finalVal / prod.base) - 1) * 100).toFixed(2));
+                prod.final = parseFloat(valor) || 0;
                 prod.ultimaModificacion = obtenerFechaActual();
                 window.guardarProductoNube(prod);
             }
@@ -372,7 +364,7 @@
                 descripcion: 'Especificaciones clave',
                 categoria: 'General',
                 base: 100.00,
-                margen: 20,
+                final: 120.00,
                 ultimaModificacion: obtenerFechaActual()
             };
             window.guardarProductoNube(nuevoProd);
@@ -384,23 +376,51 @@
             }
         };
 
-        window.exportarCSV = () => {
+        // --- EXPORTACIÓN PROFESIONAL A EXCEL (.XLSX) ---
+        window.exportarExcel = () => {
             if (productos.length === 0) {
                 alert("No hay productos para exportar.");
                 return;
             }
-            let csvContent = "data:text/csv;charset=utf-8,SKU,Nombre,Descripcion,Categoria,PrecioBase,Margen,UltimaModificacion\n";
-            productos.forEach(p => {
-                let fila = `"${p.sku || ''}","${p.nombre || ''}","${p.descripcion || ''}","${p.categoria || ''}",${p.base || 0},${p.margen || 0},"${p.ultimaModificacion || ''}"`;
-                csvContent += fila + "\n";
+
+            // Preparar datos ordenados y limpios para las celdas de Excel
+            const datosExportar = productos.map(p => {
+                const base = Number(p.base || 0);
+                const venta = Number(p.final || 0);
+                let gananciaPct = base > 0 ? (((venta / base) - 1) * 100).toFixed(1) + '%' : '0%';
+
+                return {
+                    "SKU": p.sku || '',
+                    "Nombre del Producto": p.nombre || '',
+                    "Descripción / Especificaciones": p.descripcion || '',
+                    "Categoría": p.categoria || 'General',
+                    "Precio Base ($)": base,
+                    "Precio de Venta ($)": venta,
+                    "Ganancia Est. (%)": gananciaPct,
+                    "Última Modificación": p.ultimaModificacion || 'N/D'
+                };
             });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "catalogo_tecniseven.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+
+            // Crear hoja de trabajo y libro de Excel
+            const worksheet = XLSX.utils.json_to_sheet(datosExportar);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Catálogo TECNISEVEN");
+
+            // Ajustar automáticamente el ancho de las columnas para que no se encimen los textos
+            const colWidths = [
+                {wch: 12}, // SKU
+                {wch: 30}, // Nombre
+                {wch: 35}, // Descripción
+                {wch: 18}, // Categoría
+                {wch: 15}, // Base
+                {wch: 18}, // Venta
+                {wch: 16}, // Ganancia
+                {wch: 20}  // Modificación
+            ];
+            worksheet['!cols'] = colWidths;
+
+            // Descargar archivo profesional .xlsx
+            XLSX.writeFile(workbook, "Catalogo_Tecniseven.xlsx");
         };
 
         window.toggleModalImportacion = (mostrar) => {
@@ -441,7 +461,7 @@
 - "nombre": Nombre limpio del producto.
 - "descripcion": Especificaciones clave (memoria VRAM, frecuencia, Hz, capacidad GB/TB, velocidad lectura/escritura, etc.).
 - "categoria": Debe ser estrictamente una de estas opciones: ["Portátiles", "Monitores", "Periféricos", "Componentes", "Tarjetas Gráficas", "Almacenamiento", "Accesorios", "General"]. Si es un disco duro, SSD, M.2, NVMe o memoria flash, asígnalo estrictamente a "Almacenamiento".
-- "base": Precio numérico en dólares (solo el valor numérico, ej: 850.50).
+- "base": Precio numérico base en dólares del proveedor (ej: 850.50).
 
 Texto del proveedor:
 ${texto}
@@ -488,6 +508,10 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             }
 
             productosTemporales.forEach((p, index) => {
+                const baseVal = Number(p.base || 0);
+                const sugeridoVal = (baseVal * 1.20).toFixed(2);
+                if (!p.final) p.final = parseFloat(sugeridoVal);
+
                 const item = document.createElement('div');
                 item.className = 'bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3 flex flex-col gap-2';
                 item.innerHTML = `
@@ -495,10 +519,11 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                         <span class="text-xs font-mono text-cyan-400 font-bold">Ítem #${index + 1} (${p.categoria})</span>
                         <button onclick="eliminarTemporal(${index})" class="text-rose-400 hover:text-rose-300 text-xs font-bold cursor-pointer">✕ Quitar</button>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold">
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                        <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold" placeholder="Nombre">
                         <input type="text" value="${p.descripcion || ''}" onchange="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs" placeholder="Descripción">
-                        <input type="number" step="0.01" value="${p.base || 0}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Precio Base $">
+                        <input type="number" step="0.01" value="${baseVal}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs font-mono" placeholder="Base $">
+                        <input type="number" step="0.01" value="${p.final}" onchange="productosTemporales[${index}].final = parseFloat(this.value) || 0" class="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Venta $">
                     </div>
                 `;
                 container.appendChild(item);
@@ -519,14 +544,17 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             productosTemporales.forEach((p, i) => {
                 let id = 'prod_' + Date.now() + '_' + i;
                 let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
+                let baseVal = Number(p.base) || 0;
+                let finalVal = Number(p.final) || (baseVal * 1.20);
+
                 let productoNuevo = {
                     id,
                     sku,
                     nombre: p.nombre || 'Producto sin nombre',
                     descripcion: p.descripcion || '',
                     categoria: p.categoria || 'General',
-                    base: Number(p.base) || 0,
-                    margen: 20,
+                    base: baseVal,
+                    final: finalVal,
                     ultimaModificacion: obtenerFechaActual()
                 };
                 window.guardarProductoNube(productoNuevo);
@@ -629,7 +657,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
     <!-- CONTENEDOR PRINCIPAL -->
     <div id="app-container" class="hidden max-w-5xl mx-auto relative z-10">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 border-b border-slate-800 pb-6 bg-slate-900/60 p-6 rounded-3xl backdrop-blur-xl border border-slate-700/60 shadow-2xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-6 border-b border-slate-800 pb-6 bg-slate-900/60 p-6 rounded-3xl backdrop-blur-xl border border-slate-700/60 shadow-2xl">
             <div class="flex items-center gap-4 w-full md:w-auto">
                 <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-950 border border-cyan-400/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
@@ -642,8 +670,9 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             
             <!-- Botones de Acción -->
             <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
-                <button onclick="exportarCSV()" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
-                    📥 Exportar
+                <!-- BOTÓN CAMBIADO A EXPORTAR EXCEL PROFESIONAL -->
+                <button onclick="exportarExcel()" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
+                    📊 Exportar Excel
                 </button>
                 
                 <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
