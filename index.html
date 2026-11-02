@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TECNISEVEN - Catálogo en la Nube</title>
     
-    <!-- FUENTE CIBERNÉTICA (ORBITRON) -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- FUENTES MODERNAS Y LEGIBLES -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- LIBRERÍA EXCEL (SheetJS) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=28" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=29" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -27,10 +27,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'Inter', sans-serif; /* Tipografía súper limpia y legible para todo el cuerpo */
             background-color: #020617;
             color: #f8fafc;
             overflow-x: hidden;
+        }
+
+        .cyber-title {
+            font-family: 'Orbitron', sans-serif; /* Reservado solo para títulos principales / marca */
         }
 
         .cyber-bg {
@@ -58,6 +62,7 @@
             padding: 4rem;
         }
         .wm-text {
+            font-family: 'Orbitron', sans-serif;
             font-size: 7rem;
             font-weight: 900;
             color: #3b82f6;
@@ -124,8 +129,8 @@
 
         let productos = [];
         let productosTemporales = [];
-        let ordenInvertido = false;
         let categoriaFiltroSeleccionada = 'TODOS';
+        let isUserTyping = false; // Bandera para evitar que se redibuje mientras escribes
 
         const USUARIO_CORRECTO = "tecniseven";
         const PASS_CORRECTA = "iCloud480.";
@@ -196,7 +201,10 @@
                     productos.push({ id: key, ...p });
                 });
             }
-            renderizar();
+            // Si el usuario está escribiendo o editando, NO redibujamos automáticamente para evitar saltos
+            if (!isUserTyping) {
+                renderizar();
+            }
             window.ocultarLoader();
         });
 
@@ -231,6 +239,8 @@
         };
 
         window.renderizar = () => {
+            if (isUserTyping) return; // Protección extra para mantener el foco
+
             const filtroBuscador = (document.getElementById('buscador')?.value || '').toLowerCase();
             
             let listaFiltrada = productos.filter(p => {
@@ -244,14 +254,8 @@
                 return coincideTexto && coincideCategoria;
             });
 
-            listaFiltrada.sort((a, b) => {
-                const numA = parseInt(((a.nombre || '').match(/\d+/) || [0])[0]);
-                const numB = parseInt(((b.nombre || '').match(/\d+/) || [0])[0]);
-                if (numA !== numB) return numA - numB;
-                return (a.nombre || '').localeCompare(b.nombre || '', 'es');
-            });
-
-            if (ordenInvertido) listaFiltrada.reverse();
+            // Orden fijo por SKU o nombre para que no salten de lugar al editar
+            listaFiltrada.sort((a, b) => (a.sku || '').localeCompare(b.sku || ''));
 
             const contador = document.getElementById('contador-productos');
             if (contador) contador.innerText = listaFiltrada.length;
@@ -274,7 +278,7 @@
                     margenCalculado = (((finalVal / baseVal) - 1) * 100).toFixed(1);
                 }
 
-                const ultimaMod = p.ultimaModificacion ? `<span class="text-[10px] text-cyan-400 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-[10px] text-slate-400 font-mono">🕒 Sin cambios recientes</span>`;
+                const ultimaMod = p.ultimaModificacion ? `<span class="text-[11px] text-cyan-400 font-mono">🕒 Actualizado: ${p.ultimaModificacion}</span>` : `<span class="text-[11px] text-slate-400 font-mono">🕒 Sin cambios</span>`;
 
                 let optionsHTML = '';
                 const categoriasDisponibles = ['Procesadores', 'Tarjetas Gráficas', 'Placas Madre', 'Memorias RAM', 'Fuentes de Poder', 'Fan Coolers / Refr. Líquida', 'Cases', 'Almacenamiento', 'Monitores', 'Portátiles', 'Periféricos', 'Accesorios', 'General'];
@@ -290,7 +294,10 @@
                         <div class="flex items-center gap-3 w-full sm:w-auto">
                             <span class="font-mono text-xs font-bold px-3 py-1 rounded-lg bg-[#2323ff]/20 text-cyan-300 border border-[#2323ff]/50">${p.sku || ''}</span>
                             <div class="w-full sm:w-96">
-                                <input type="text" value="${p.nombre || ''}" onchange="actualizarDato('${p.id}', 'nombre', this.value)" class="bg-slate-950/90 border border-slate-700 rounded-lg px-3 py-1.5 w-full text-white text-sm font-bold focus:border-cyan-400" placeholder="Nombre del producto">
+                                <input type="text" value="${p.nombre || ''}" 
+                                    onfocus="isUserTyping = true" 
+                                    onblur="isUserTyping = false; actualizarDato('${p.id}', 'nombre', this.value)" 
+                                    class="bg-slate-950/90 border border-slate-700 rounded-lg px-3 py-2 w-full text-white text-sm font-semibold focus:border-cyan-400" placeholder="Nombre del producto">
                             </div>
                         </div>
                         <div class="flex items-center justify-between w-full sm:w-auto gap-4">
@@ -301,33 +308,42 @@
 
                     <!-- Fila de Descripción Corta -->
                     <div class="mb-4">
-                        <input type="text" value="${p.descripcion || ''}" onchange="actualizarDato('${p.id}', 'descripcion', this.value)" class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-1.5 w-full text-slate-300 text-xs focus:border-cyan-400" placeholder="Descripción corta o especificaciones clave...">
+                        <input type="text" value="${p.descripcion || ''}" 
+                            onfocus="isUserTyping = true" 
+                            onblur="isUserTyping = false; actualizarDato('${p.id}', 'descripcion', this.value)" 
+                            class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2 w-full text-slate-200 text-xs focus:border-cyan-400" placeholder="Descripción corta o especificaciones clave...">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                         <div>
                             <div class="flex justify-between items-center mb-1">
-                                <label class="text-[10px] text-slate-400 block">CATEGORÍA</label>
-                                <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60" title="Margen de ganancia calculado">📊 Ganancia: +${margenCalculado}%</span>
+                                <label class="text-[11px] font-medium text-slate-300 block">CATEGORÍA</label>
+                                <span class="text-[10px] font-mono bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800/60">📊 Ganancia: +${margenCalculado}%</span>
                             </div>
-                            <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs w-full">
+                            <select onchange="actualizarDato('${p.id}', 'categoria', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs w-full font-medium">
                                 ${optionsHTML}
                             </select>
                         </div>
 
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">PRECIO BASE ($)</label>
+                            <label class="text-[11px] font-medium text-slate-300 block mb-1">PRECIO BASE ($)</label>
                             <div class="relative flex items-center">
                                 <span class="absolute left-3 text-cyan-400 font-mono">$</span>
-                                <input type="number" step="0.01" value="${baseVal}" onchange="actualizarBase('${p.id}', this.value)" class="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-xs font-bold">
+                                <input type="number" step="0.01" value="${baseVal}" 
+                                    onfocus="isUserTyping = true" 
+                                    onblur="isUserTyping = false; actualizarBase('${p.id}', this.value)" 
+                                    class="bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 w-full text-white font-mono text-xs font-bold">
                             </div>
                         </div>
 
                         <div>
-                            <label class="text-[10px] text-cyan-400 font-bold block mb-1">PRECIO DE VENTA ($)</label>
+                            <label class="text-[11px] font-bold text-cyan-400 block mb-1">PRECIO DE VENTA ($)</label>
                             <div class="relative flex items-center">
                                 <span class="absolute left-3 font-bold text-cyan-300">$</span>
-                                <input type="number" step="0.01" value="${finalVal.toFixed(2)}" onchange="actualizarPrecioFinal('${p.id}', this.value)" class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
+                                <input type="number" step="0.01" value="${finalVal.toFixed(2)}" 
+                                    onfocus="isUserTyping = true" 
+                                    onblur="isUserTyping = false; actualizarPrecioFinal('${p.id}', this.value)" 
+                                    class="input-precio-final rounded-lg pl-8 pr-3 py-2 w-full font-mono font-bold text-xs neon-glow">
                             </div>
                         </div>
                     </div>
@@ -338,7 +354,7 @@
 
         window.actualizarDato = (id, campo, valor) => {
             const prod = productos.find(p => String(p.id) === String(id));
-            if (prod) {
+            if (prod && prod[campo] !== valor) {
                 prod[campo] = valor;
                 prod.ultimaModificacion = obtenerFechaActual();
                 window.guardarProductoNube(prod);
@@ -474,7 +490,6 @@ ${texto}
 Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdown alrededor ni texto adicional.`;
 
             try {
-                // Actualizado al modelo estándar actual compatible
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -624,7 +639,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
         <div class="relative mb-8">
             <img src="Logo.png" alt="Cargando TECNISEVEN" class="h-36 sm:h-44 w-auto object-contain rounded-3xl bg-slate-900 border-2 border-cyan-400 p-5 neon-glow-strong animate-pulse" onerror="this.onerror=null; this.src='logo.png';">
         </div>
-        <h2 class="text-3xl font-black tracking-widest text-white mb-2 uppercase">TECNISEVEN</h2>
+        <h2 class="text-3xl font-black tracking-widest text-white mb-2 uppercase cyber-title">TECNISEVEN</h2>
         <p class="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-8">Cargando Sistema & Sincronizando Datos...</p>
         
         <div class="w-80 sm:w-96 h-6 bg-slate-900/90 rounded-full overflow-hidden border-2 border-cyan-400 bar-container p-0.5 relative">
@@ -637,7 +652,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
         <div class="bg-slate-900/95 border border-slate-700 rounded-3xl w-full max-w-md p-8 shadow-2xl neon-glow">
             <div class="text-center mb-6">
                 <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain mx-auto mb-4 rounded-2xl bg-slate-950 border border-cyan-400/50 p-2" onerror="this.onerror=null; this.src='logo.png';">
-                <h2 class="text-2xl font-black tracking-wider text-white">TECNISEVEN</h2>
+                <h2 class="text-2xl font-black tracking-wider text-white cyber-title">TECNISEVEN</h2>
                 <p class="text-cyan-400 text-xs font-mono tracking-wider mt-1">ACCESO RESTRINGIDO</p>
             </div>
 
@@ -667,7 +682,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             <div class="flex items-center gap-4 w-full md:w-auto">
                 <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-950 border border-cyan-400/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white cyber-title">
                         TECNISEVEN <span class="text-cyan-400 font-light">| Catálogo Nube</span>
                     </h1>
                     <p class="text-slate-400 mt-1 text-xs sm:text-sm">Control avanzado de precios y sincronización en tiempo real.</p>
@@ -696,7 +711,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
 
         <!-- FILTROS RÁPIDOS POR CATEGORÍA -->
         <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-3 rounded-2xl border border-slate-800 backdrop-blur-md">
-            <span class="text-[10px] font-mono text-cyan-400 mr-2 font-bold">FILTRAR POR:</span>
+            <span class="text-[11px] font-semibold text-cyan-400 mr-2">FILTRAR POR:</span>
             <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition">
                 🌐 Todos
             </button>
@@ -758,7 +773,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
     <!-- VENTANA EMERGENTE (MODAL) CON VISTA PREVIA DE IA -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
-            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2 cyber-title">
                 <span>✨</span> Importación Inteligente con Vista Previa
             </h3>
             <p class="text-slate-400 text-xs mb-4">
@@ -773,7 +788,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                 </div>
                 <div>
                     <label class="text-xs text-cyan-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
-                    <textarea id="texto-pegado" rows="6" placeholder="Pega aquí los procesadores u otros componentes..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
+                    <textarea id="texto-pegado" rows="6" placeholder="Pega aquí tu lista de componentes..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-2">
                     <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Cancelar</button>
