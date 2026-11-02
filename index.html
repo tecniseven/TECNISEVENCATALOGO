@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=39" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=40" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -261,72 +261,83 @@
             }
         };
 
-        // AUTO-ARMADOR INTELIGENTE POR CPU
+        // AUTO-ARMADOR INTELIGENTE POR CPU (INCLUYE COMPONENTES FUERA DE INVENTARIO)
         window.autoArmarPorProcesador = () => {
-            const textoBuscado = (document.getElementById('input-auto-cpu')?.value || '').trim().toUpperCase();
+            const textoBuscado = (document.getElementById('input-auto-cpu')?.value || '').trim();
             if (!textoBuscado) {
-                alert("Escribe o pega el modelo del procesador (ej: Ryzen 7 8700G).");
+                alert("Escribe o pega el modelo del procesador (ej: Ryzen 7 8700G o Ryzen 3 3200G).");
                 return;
             }
 
-            const cpusDisponibles = productos.filter(p => p.categoria === 'Procesadores' && p.enStock !== false);
-            const cpuEncontrada = cpusDisponibles.find(p => p.nombre.toUpperCase().includes(textoBuscado) || p.descripcion.toUpperCase().includes(textoBuscado)) || cpusDisponibles[0];
+            const textoUpper = textoBuscado.toUpperCase();
+            const cpusDisponibles = productos.filter(p => p.categoria === 'Procesadores');
+            const palabras = textoUpper.split(' ').filter(w => w.length > 0);
+            
+            let cpuEncontrada = cpusDisponibles.find(p => {
+                const info = (p.nombre + ' ' + p.descripcion).toUpperCase();
+                return palabras.every(palabra => info.includes(palabra));
+            });
 
+            // Si no está en inventario, creamos un objeto virtual para cotizarlo de todas formas
             if (!cpuEncontrada) {
-                alert(`No se encontró un procesador en stock que coincida con "${textoBuscado}". Selecciona uno manualmente.`);
-                return;
+                cpuEncontrada = {
+                    id: 'virtual_' + Date.now(),
+                    nombre: textoBuscado,
+                    descripcion: 'Cotizado por pedido especial',
+                    categoria: 'Procesadores',
+                    base: 150.00,
+                    final: 180.00,
+                    enStock: false // Se marca claramente que no está en inventario
+                };
             }
 
-            document.getElementById('select-procesador').value = cpuEncontrada.id;
-            seleccionarComponente('procesador', cpuEncontrada.id);
+            pcArmada.procesador = cpuEncontrada;
+            document.getElementById('select-procesador').value = cpuEncontrada.enStock ? cpuEncontrada.id : '';
 
             const cpuTexto = (cpuEncontrada.nombre + ' ' + cpuEncontrada.descripcion).toUpperCase();
             const esAm5 = cpuTexto.includes('AM5') || cpuTexto.includes('7000') || cpuTexto.includes('8000') || cpuTexto.includes('9000') || cpuTexto.includes('8700G');
-            const esAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000') || cpuTexto.includes('5600G') || cpuTexto.includes('5700G');
+            const esAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000') || cpuTexto.includes('3200G') || cpuTexto.includes('5600G');
 
+            // Asignar placa madre compatible en stock si existe
             const placas = productos.filter(p => p.categoria === 'Placas Madre' && p.enStock !== false);
             let placaEmparejada = null;
-
             if (esAm5) {
-                placaEmparejada = placas.find(p => (p.nombre + p.descripcion).toUpperCase().includes('B650') || (p.nombre + p.descripcion).toUpperCase().includes('A620') || (p.nombre + p.descripcion).toUpperCase().includes('AM5'));
+                placaEmparejada = placas.find(p => (p.nombre + p.descripcion).toUpperCase().includes('B650') || (p.nombre + p.descripcion).toUpperCase().includes('AM5'));
             } else if (esAm4) {
-                placaEmparejada = placas.find(p => (p.nombre + p.descripcion).toUpperCase().includes('B450') || (p.nombre + p.descripcion).toUpperCase().includes('B550') || (p.nombre + p.descripcion).toUpperCase().includes('A320') || (p.nombre + p.descripcion).toUpperCase().includes('AM4'));
+                placaEmparejada = placas.find(p => (p.nombre + p.descripcion).toUpperCase().includes('B450') || (p.nombre + p.descripcion).toUpperCase().includes('B550') || (p.nombre + p.descripcion).toUpperCase().includes('AM4'));
             }
-
-            if (!placaEmparejada) placaEmparejada = placas[0];
-
+            if (!placaEmparejada && placas.length > 0) placaEmparejada = placas[0];
             if (placaEmparejada) {
                 document.getElementById('select-placa').value = placaEmparejada.id;
-                seleccionarComponente('placaMadre', placaEmparejada.id);
+                pcArmada.placaMadre = placaEmparejada;
             }
 
+            // Asignar RAM compatible
             const rams = productos.filter(p => p.categoria === 'Memorias RAM' && p.enStock !== false);
             let ramEmparejada = null;
-
             if (esAm5) {
                 ramEmparejada = rams.find(p => (p.nombre + p.descripcion).toUpperCase().includes('DDR5'));
             } else {
                 ramEmparejada = rams.find(p => (p.nombre + p.descripcion).toUpperCase().includes('DDR4'));
             }
-
-            if (!ramEmparejada) ramEmparejada = rams[0];
-
+            if (!ramEmparejada && rams.length > 0) ramEmparejada = rams[0];
             if (ramEmparejada) {
                 document.getElementById('select-ram').value = ramEmparejada.id;
-                seleccionarComponente('memoriaRam', ramEmparejada.id);
+                pcArmada.memoriaRam = ramEmparejada;
             }
 
-            const primerLlenado = (cat, selectId, slot) => {
+            // Asignar resto de piezas básicas en stock
+            const asignarSlot = (cat, selectId, slot) => {
                 const item = productos.find(p => p.categoria === cat && p.enStock !== false);
                 if (item) {
                     document.getElementById(selectId).value = item.id;
-                    seleccionarComponente(slot, item.id);
+                    pcArmada[slot] = item;
                 }
             };
 
-            primerLlenado('Almacenamiento', 'select-almacenamiento', 'almacenamiento');
-            primerLlenado('Fuentes de Poder', 'select-fuente', 'fuentePoder');
-            primerLlenado('Cases', 'select-case', 'case');
+            asignarSlot('Almacenamiento', 'select-almacenamiento', 'almacenamiento');
+            asignarSlot('Fuentes de Poder', 'select-fuente', 'fuentePoder');
+            asignarSlot('Cases', 'select-case', 'case');
 
             document.getElementById('input-proposito').value = `Cotización basada en procesador ${cpuEncontrada.nombre}`;
             calcularTotalPC();
@@ -395,21 +406,19 @@
                 }
             };
 
-            // Llenar procesador
             buscarYSeleccionar('Procesadores', p.keywordsCpu, 'select-procesador', 'procesador');
 
-            // Placa Madre compatible con la CPU seleccionada
             if (pcArmada.procesador) {
                 const cpuTexto = (pcArmada.procesador.nombre + ' ' + pcArmada.procesador.descripcion).toUpperCase();
                 const esAm5 = cpuTexto.includes('AM5') || cpuTexto.includes('7000') || cpuTexto.includes('8000') || cpuTexto.includes('9000') || cpuTexto.includes('8700G');
-                const esAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000') || cpuTexto.includes('5600G');
+                const esAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000') || cpuTexto.includes('3200G');
 
                 const placas = productos.filter(item => item.categoria === 'Placas Madre' && item.enStock !== false);
                 let placaComp = null;
                 if (esAm5) {
-                    placaComp = placas.find(item => (item.nombre + item.descripcion).toUpperCase().includes('B650') || (item.nombre + item.descripcion).toUpperCase().includes('AM5') || (item.nombre + item.descripcion).toUpperCase().includes('A620'));
+                    placaComp = placas.find(item => (item.nombre + item.descripcion).toUpperCase().includes('B650') || (item.nombre + item.descripcion).toUpperCase().includes('AM5'));
                 } else if (esAm4) {
-                    placaComp = placas.find(item => (item.nombre + item.descripcion).toUpperCase().includes('B450') || (item.nombre + item.descripcion).toUpperCase().includes('B550') || (item.nombre + item.descripcion).toUpperCase().includes('AM4') || (item.nombre + item.descripcion).toUpperCase().includes('A320'));
+                    placaComp = placas.find(item => (item.nombre + item.descripcion).toUpperCase().includes('B450') || (item.nombre + item.descripcion).toUpperCase().includes('B550') || (item.nombre + item.descripcion).toUpperCase().includes('AM4'));
                 }
                 if (!placaComp && placas.length > 0) placaComp = placas[0];
 
@@ -419,7 +428,6 @@
                     seleccionarComponente('placaMadre', placaComp.id);
                 }
 
-                // RAM compatible
                 const rams = productos.filter(item => item.categoria === 'Memorias RAM' && item.enStock !== false);
                 let ramComp = null;
                 if (esAm5) {
@@ -436,10 +444,7 @@
                 }
             }
 
-            // Tarjeta gráfica
             buscarYSeleccionar('Tarjetas Gráficas', p.keywordsGpu, 'select-gpu', 'tarjetaGrafica');
-
-            // Resto de piezas
             buscarYSeleccionar('Almacenamiento', [], 'select-almacenamiento', 'almacenamiento');
             buscarYSeleccionar('Fuentes de Poder', [], 'select-fuente', 'fuentePoder');
             buscarYSeleccionar('Cases', [], 'select-case', 'case');
@@ -462,12 +467,14 @@
                 const valorActual = sel.value;
                 sel.innerHTML = `<option value="">-- Seleccionar ${catNombre} --</option>`;
 
-                const filtrados = productos.filter(p => p.categoria === catNombre && p.enStock !== false);
+                // Muestra todos los productos de la categoría (con o sin stock para que puedas elegirlos)
+                const filtrados = productos.filter(p => p.categoria === catNombre);
                 filtrados.forEach(p => {
                     const precioVenta = Number(p.final || (p.base * 1.20)).toFixed(2);
+                    const stockLabel = p.enStock !== false ? '📦 [En Stock]' : '❌ [Agotado]';
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.textContent = `${p.nombre} ($${precioVenta})`;
+                    opt.textContent = `${p.nombre} ($${precioVenta}) ${stockLabel}`;
                     if (valorActual === p.id) opt.selected = true;
                     sel.appendChild(opt);
                 });
@@ -509,37 +516,14 @@
                 const esCpuAm5 = cpuTexto.includes('AM5') || cpuTexto.includes('7000') || cpuTexto.includes('8000') || cpuTexto.includes('9000') || cpuTexto.includes('8700G');
                 const esPlacaAm5 = placaTexto.includes('AM5') || placaTexto.includes('B650') || placaTexto.includes('X670') || placaTexto.includes('A620') || placaTexto.includes('X870');
 
-                const esCpuAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000');
+                const esCpuAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000') || cpuTexto.includes('3200G');
                 const esPlacaAm4 = placaTexto.includes('AM4') || placaTexto.includes('A320') || placaTexto.includes('B450') || placaTexto.includes('B550') || placaTexto.includes('X570');
 
-                const esCpuIntel1700 = cpuTexto.includes('LGA1700') || cpuTexto.includes('12100') || cpuTexto.includes('13400') || cpuTexto.includes('14400') || cpuTexto.includes('12400');
-                const esPlacaIntel1700 = placaTexto.includes('LGA1700') || placaTexto.includes('H610') || placaTexto.includes('B660') || placaTexto.includes('B760') || placaTexto.includes('Z690') || placaTexto.includes('Z790');
-
                 if (esCpuAm5 && placaTexto && !esPlacaAm5) {
-                    alertas.push("⚠️ El procesador es Socket AM5 (Serie 7000/8000/9000) pero la Placa Madre no coincide.");
+                    alertas.push("⚠️ El procesador es Socket AM5 pero la Placa Madre no coincide.");
                 }
                 if (esCpuAm4 && placaTexto && !esPlacaAm4) {
                     alertas.push("⚠️ El procesador es Socket AM4 pero la Placa Madre seleccionada no corresponde.");
-                }
-                if (esCpuIntel1700 && placaTexto && !esPlacaIntel1700) {
-                    alertas.push("⚠️ El procesador Intel es LGA1700 pero la Placa Madre no corresponde.");
-                }
-            }
-
-            if (ram && placa) {
-                const ramTexto = (ram.nombre + ' ' + ram.descripcion).toUpperCase();
-                const placaTexto = (placa.nombre + ' ' + placa.descripcion).toUpperCase();
-
-                const esRamDdr5 = ramTexto.includes('DDR5');
-                const esRamDdr4 = ramTexto.includes('DDR4');
-                const placaEsDdr5 = placaTexto.includes('DDR5') || placaTexto.includes('B650') || placaTexto.includes('Z790');
-                const placaEsDdr4 = placaTexto.includes('DDR4') || placaTexto.includes('H610') || placaTexto.includes('B450') || placaTexto.includes('B550');
-
-                if (esRamDdr5 && placaTexto && placaEsDdr4) {
-                    alertas.push("⚠️ Estás combinando memoria RAM DDR5 con una Placa Madre DDR4.");
-                }
-                if (esRamDdr4 && placaTexto && placaEsDdr5 && !placaTexto.includes('DDR4')) {
-                    alertas.push("⚠️ Estás combinando memoria RAM DDR4 con una Placa Madre orientada a DDR5.");
                 }
             }
 
@@ -567,11 +551,19 @@
                 if (item) {
                     const precio = Number(item.final || (item.base * 1.20));
                     total += precio;
+                    
+                    // Verificador de Stock para mostrar en el resumen
+                    let badgeStock = `<span class="text-[10px] text-emerald-400 font-mono">📦 En Stock</span>`;
+                    if (item.enStock === false || String(item.id).startsWith('virtual_')) {
+                        badgeStock = `<span class="text-[10px] text-amber-400 font-mono font-bold">⚠️ Fuera de Inventario (Por pedido)</span>`;
+                    }
+
                     resumenHTML += `
                         <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
                             <div>
                                 <span class="text-cyan-400 font-bold block">${slotsNombres[slot]}</span>
                                 <span class="text-slate-200">${item.nombre}</span>
+                                <div class="mt-0.5">${badgeStock}</div>
                             </div>
                             <span class="font-mono font-bold text-cyan-300">$${precio.toFixed(2)}</span>
                         </div>
@@ -593,7 +585,7 @@
                 if (alertasComp.length > 0) {
                     contenedorAlertas.innerHTML = alertasComp.map(a => `<div class="bg-rose-950/60 border border-rose-900 text-rose-300 p-2.5 rounded-xl text-xs mb-2 font-medium">${a}</div>`).join('');
                 } else {
-                    contenedorAlertas.innerHTML = `<div class="bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 p-2 rounded-xl text-[11px] mb-2 font-medium">✅ Compatibilidad básica verificada</div>`;
+                    contenedorAlertas.innerHTML = `<div class="bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 p-2 rounded-xl text-[11px] mb-2 font-medium">✅ Compatibilidad verificada</div>`;
                 }
             }
 
@@ -636,7 +628,8 @@
                 if (item) {
                     const precio = Number(item.final || (item.base * 1.20));
                     total += precio;
-                    texto += `• ${slotsNombres[slot]}: ${item.nombre} - $${precio.toFixed(2)}\n`;
+                    let notaStock = (item.enStock === false || String(item.id).startsWith('virtual_')) ? ' (⚠️ Bajo pedido)' : '';
+                    texto += `• ${slotsNombres[slot]}: ${item.nombre} - $${precio.toFixed(2)}${notaStock}\n`;
                 }
             });
 
@@ -1177,19 +1170,19 @@
             <div id="lista-productos"></div>
         </div>
 
-        <!-- SECCIÓN 2: COTIZADOR INTERNO CON AUTO-ARMADO Y PRESETS ACTIVOS -->
+        <!-- SECCIÓN 2: COTIZADOR INTERNO CON DETECCIÓN DE STOCK / PEDIDOS -->
         <div id="seccion-cotizador" class="hidden space-y-6">
             
             <!-- BARRA DE AUTO-ARMADO RÁPIDO POR PROCESADOR -->
             <div class="bg-slate-900/90 border border-cyan-500/60 rounded-3xl p-5 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="w-full md:w-auto">
                     <h3 class="text-xs font-bold text-cyan-300 cyber-title uppercase flex items-center gap-2">
-                        <span>⚡</span> Cotizado Rápido por Modelo de Procesador (Ej: Ryzen 7 8700G)
+                        <span>⚡</span> Cotizado Rápido por Modelo de Procesador (Ej: Ryzen 3 3200G)
                     </h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5">Escribe el procesador solicitado y el sistema seleccionará componentes compatibles en stock automáticamente:</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Escribe cualquier procesador: si lo tienes en inventario se carga, y si no, se agrega virtualmente a la cotización:</p>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
-                    <input type="text" id="input-auto-cpu" placeholder="Ej: Ryzen 7 8700G o 5600X..." class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-xs w-full md:w-64 focus:border-cyan-400">
+                    <input type="text" id="input-auto-cpu" placeholder="Ej: Ryzen 3 3200G..." class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-xs w-full md:w-64 focus:border-cyan-400">
                     <button onclick="autoArmarPorProcesador()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-lg text-xs whitespace-nowrap cursor-pointer">
                         ⚡ Auto-Armar
                     </button>
@@ -1232,7 +1225,7 @@
                     <h2 class="text-lg font-bold text-white flex items-center gap-2 cyber-title mb-2">
                         <span>🛠️</span> Armador de Presupuesto
                     </h2>
-                    <p class="text-slate-400 text-xs mb-4">Selecciona los productos activos en stock para calcular la cotización exacta:</p>
+                    <p class="text-slate-400 text-xs mb-4">Selecciona los componentes para armar la cotización (se indica cuáles están en stock):</p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
