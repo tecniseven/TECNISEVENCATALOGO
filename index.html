@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=31" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=32" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -440,99 +440,90 @@
                     modal.classList.remove('hidden');
                     document.getElementById('step-input').classList.remove('hidden');
                     document.getElementById('step-preview').classList.add('hidden');
-                    const savedKey = localStorage.getItem('gemini_api_key');
-                    if (savedKey) document.getElementById('gemini-api-key').value = savedKey;
                 } else {
                     modal.classList.add('hidden');
                 }
             }
         };
 
-        window.analizarConIA = async () => {
-            const texto = document.getElementById('texto-pegado').value.trim();
-            const apiKey = document.getElementById('gemini-api-key').value.trim();
-
-            if (!apiKey) {
-                alert("Por favor ingresa tu API Key de Gemini.");
-                return;
-            }
-            if (!texto) {
-                alert("Por favor pega los datos del proveedor en el cuadro de texto.");
+        // PARSER LOCAL DIRECTO (SIN IA / SIN ERRORES DE API)
+        window.analizarTextoLocal = () => {
+            const rawText = document.getElementById('texto-pegado').value.trim();
+            if (!rawText) {
+                alert("Por favor pega alguna línea de texto.");
                 return;
             }
 
-            localStorage.setItem('gemini_api_key', apiKey);
+            const lineas = rawText.split('\n');
+            productosTemporales = [];
 
-            const btn = document.getElementById('btn-ia');
-            btn.innerText = "⏳ Analizando con IA...";
-            btn.disabled = true;
+            lineas.forEach(linea => {
+                let l = linea.trim();
+                if (!l) return;
 
-            const prompt = `Actúa como un sistema experto de extracción de datos para un catálogo de tecnología. Analiza el siguiente texto desordenado de un proveedor y devuelve un JSON puro (un array de objetos) con los productos detectados. Cada objeto debe tener exactamente estas propiedades:
-- "nombre": Nombre limpio del producto.
-- "descripcion": Especificaciones clave (núcleos, GHz, socket, VRAM, Hz, capacidad GB/TB, potencia W, etc.).
-- "categoria": Debe ser estrictamente una de estas opciones: ["Procesadores", "Tarjetas Gráficas", "Placas Madre", "Memorias RAM", "Fuentes de Poder", "Fan Coolers / Refr. Líquida", "Cases", "Almacenamiento", "Monitores", "Portátiles", "Periféricos", "Accesorios", "General"]. 
-  Reglas de clasificación estricta:
-  * Procesadores, CPU, Ryzen, Core i3/i5/i7/i9 -> "Procesadores"
-  * Tarjetas de video, GPU, RTX, GTX, Radeon -> "Tarjetas Gráficas"
-  * Placas madre, motherboard, zócalos LGA/AM4/AM5, B650, Z790 -> "Placas Madre"
-  * Memorias RAM, módulos DDR4, DDR5, kits -> "Memorias RAM"
-  * Fuentes de poder, power supply, W, 80 Plus -> "Fuentes de Poder"
-  * Cooler, ventiladores, fan cooler, disipador, refrigeración líquida, AIO, watercooling -> "Fan Coolers / Refr. Líquida"
-  * Case, gabinete, chasis, torre PC -> "Cases"
-  * Discos SSD, M.2, NVMe, HDD -> "Almacenamiento"
-  * Monitores, pantallas, QD-OLED, IPS -> "Monitores"
-- "base": Precio numérico base en dólares del proveedor (ej: 850.50).
+                // Extraer el precio (último monto con signo $ o valor numérico con coma/punto)
+                let precioBase = 0;
+                const matchPrecio = l.match(/\$\s*(\d+[.,]?\d*)|(\d+[.,]\d{2})/g);
+                if (matchPrecio && matchPrecio.length > 0) {
+                    const ultPrecio = matchPrecio[matchPrecio.length - 1];
+                    precioBase = parseFloat(ultPrecio.replace('$', '').replace(',', '.').trim()) || 0;
+                }
 
-Texto del proveedor:
-${texto}
+                // Limpieza del nombre (remover palabras innecesarias al inicio como PROCESADOR, CPU, etc.)
+                let nombreLimpio = l
+                    .replace(/^(PROCESADOR|CPU|MONITOR|FUENTE|MEMORIA|PLACA|MOTHERBOARD|CASE|COOLER)\s+/i, '')
+                    .replace(/\$\s*\d+[.,]?\d*/g, '')
+                    .trim();
 
-Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdown alrededor ni texto adicional.`;
+                // Auto-clasificación por palabras clave
+                let categoria = 'General';
+                const lUpper = l.toUpperCase();
+                if (lUpper.includes('RYZEN') || lUpper.includes('INTEL') || lUpper.includes('CORE') || lUpper.includes('SOCKET') || lUpper.includes('AM4') || lUpper.includes('AM5')) {
+                    categoria = 'Procesadores';
+                } else if (lUpper.includes('RTX') || lUpper.includes('GTX') || lUpper.includes('RADEON') || lUpper.includes('GPU')) {
+                    categoria = 'Tarjetas Gráficas';
+                } else if (lUpper.includes('MONITOR') || lUpper.includes('HZ') || lUpper.includes('QHD') || lUpper.includes('FHD') || lUpper.includes('OLED')) {
+                    categoria = 'Monitores';
+                } else if (lUpper.includes('B650') || lUpper.includes('Z790') || lUpper.includes('A620') || lUpper.includes('MOTHERBOARD') || lUpper.includes('PLACA')) {
+                    categoria = 'Placas Madre';
+                } else if (lUpper.includes('RAM') || lUpper.includes('DDR4') || lUpper.includes('DDR5')) {
+                    categoria = 'Memorias RAM';
+                } else if (lUpper.includes('FUENTE') || lUpper.includes('80+') || lUpper.includes('80 PLUS') || lUpper.includes('POWER SUPPLY')) {
+                    categoria = 'Fuentes de Poder';
+                } else if (lUpper.includes('COOLER') || lUpper.includes('FAN') || lUpper.includes('LIQUIDA') || lUpper.includes('AIO')) {
+                    categoria = 'Fan Coolers / Refr. Líquida';
+                } else if (lUpper.includes('CASE') || lUpper.includes('GABINETE')) {
+                    categoria = 'Cases';
+                } else if (lUpper.includes('SSD') || lUpper.includes('NVME') || lUpper.includes('HDD') || lUpper.includes('M.2')) {
+                    categoria = 'Almacenamiento';
+                }
 
-            try {
-                // Actualizado exactamente al modelo gemini-3.8-flash solicitado por el servicio
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
+                if (nombreLimpio) {
+                    productosTemporales.push({
+                        nombre: nombreLimpio,
+                        descripcion: 'Especificaciones clave',
+                        categoria: categoria,
+                        base: precioBase,
+                        final: parseFloat((precioBase * 1.20).toFixed(2))
+                    });
+                }
+            });
 
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
-
-                let respuestaTexto = data.candidates[0].content.parts[0].text;
-                respuestaTexto = respuestaTexto.replace(/```json/g, '').replace(/```/g, '').trim();
-
-                productosTemporales = JSON.parse(respuestaTexto);
-
-                renderizarVistaPreviaIA();
-                document.getElementById('step-input').classList.add('hidden');
-                document.getElementById('step-preview').classList.remove('hidden');
-
-            } catch (error) {
-                console.error(error);
-                alert("Error al procesar con Gemini API: " + error.message);
-            } finally {
-                btn.innerText = "✨ Analizar y Ver Vista Previa";
-                btn.disabled = false;
-            }
+            renderizarVistaPreviaLocal();
+            document.getElementById('step-input').classList.add('hidden');
+            document.getElementById('step-preview').classList.remove('hidden');
         };
 
-        window.renderizarVistaPreviaIA = () => {
+        window.renderizarVistaPreviaLocal = () => {
             const container = document.getElementById('lista-preview');
             container.innerHTML = '';
 
             if (productosTemporales.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-center py-4">No se detectaron productos.</p>`;
+                container.innerHTML = `<p class="text-slate-400 text-center py-4">No se pudieron extraer productos.</p>`;
                 return;
             }
 
             productosTemporales.forEach((p, index) => {
-                const baseVal = Number(p.base || 0);
-                const sugeridoVal = (baseVal * 1.20).toFixed(2);
-                if (!p.final) p.final = parseFloat(sugeridoVal);
-
                 const item = document.createElement('div');
                 item.className = 'bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3 flex flex-col gap-2';
                 item.innerHTML = `
@@ -543,7 +534,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
                         <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold" placeholder="Nombre">
                         <input type="text" value="${p.descripcion || ''}" onchange="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs" placeholder="Descripción">
-                        <input type="number" step="0.01" value="${baseVal}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs font-mono" placeholder="Base $">
+                        <input type="number" step="0.01" value="${p.base}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs font-mono" placeholder="Base $">
                         <input type="number" step="0.01" value="${p.final}" onchange="productosTemporales[${index}].final = parseFloat(this.value) || 0" class="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Venta $">
                     </div>
                 `;
@@ -553,10 +544,10 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
 
         window.eliminarTemporal = (index) => {
             productosTemporales.splice(index, 1);
-            renderizarVistaPreviaIA();
+            renderizarVistaPreviaLocal();
         };
 
-        window.guardarImportacionIA = () => {
+        window.guardarImportacionLocal = () => {
             if (productosTemporales.length === 0) {
                 alert("No hay productos para guardar.");
                 return;
@@ -581,7 +572,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                 window.guardarProductoNube(productoNuevo);
             });
 
-            alert(`¡Se han guardado ${productosTemporales.length} productos en la nube con éxito!`);
+            alert(`¡Se han procesado y guardado ${productosTemporales.length} productos en la nube!`);
             productosTemporales = [];
             document.getElementById('texto-pegado').value = '';
             toggleModalImportacion(false);
@@ -696,7 +687,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                 </button>
                 
                 <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
-                    ✨ Importar con IA
+                    📋 Pegar Lista
                 </button>
 
                 <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-xs">
@@ -770,35 +761,31 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
         </div>
     </div>
 
-    <!-- VENTANA EMERGENTE (MODAL) CON VISTA PREVIA DE IA -->
+    <!-- VENTANA EMERGENTE (MODAL) DE PROCESAMIENTO RÁPIDO DE LISTAS -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2 cyber-title">
-                <span>✨</span> Importación Inteligente con Vista Previa
+                <span>📋</span> Procesador de Listas de Proveedor
             </h3>
             <p class="text-slate-400 text-xs mb-4">
-                Pega tu lista de proveedor. La IA estructurará los datos y podrás revisarlos y editarlos antes de subirlos a la nube.
+                Pega tus líneas de texto. El sistema limpiará el nombre del producto, extraerá el precio y clasificará automáticamente la categoría.
             </p>
 
-            <!-- PASO 1: ENTRADA DE TEXTO Y API KEY -->
+            <!-- PASO 1: ENTRADA DE TEXTO -->
             <div id="step-input" class="flex flex-col gap-4">
                 <div>
-                    <label class="text-xs text-cyan-400 font-mono block mb-1">GEMINI API KEY</label>
-                    <input type="password" id="gemini-api-key" placeholder="Pega tu API Key de Google AI Studio..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
-                    <textarea id="texto-pegado" rows="6" placeholder="Pega aquí tu lista de monitores u otros componentes..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
+                    <label class="text-xs text-cyan-400 font-mono block mb-1">LISTA DE PRODUCTOS Y PRECIOS</label>
+                    <textarea id="texto-pegado" rows="8" placeholder="Ej: PROCESADOR RYZEN 5 9600X AMD $ 220..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-2">
                     <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Cancelar</button>
-                    <button id="btn-ia" onclick="analizarConIA()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">✨ Analizar y Ver Vista Previa</button>
+                    <button onclick="analizarTextoLocal()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">⚙️ Procesar Lista</button>
                 </div>
             </div>
 
-            <!-- PASO 2: VISTA PREVIA Y EDICIÓN ANTES DE GUARDAR -->
+            <!-- PASO 2: VISTA PREVIA Y CONFIRMACIÓN -->
             <div id="step-preview" class="hidden flex flex-col gap-4 flex-grow overflow-hidden">
-                <p class="text-xs text-cyan-300 font-mono">👁️ Revisa los datos detectados. Puedes corregir cualquier texto o precio antes de guardar:</p>
+                <p class="text-xs text-cyan-300 font-mono">👁️ Revisa los productos extraídos antes de enviarlos a la nube:</p>
                 
                 <div id="lista-preview" class="overflow-y-auto max-h-[50vh] pr-2 space-y-2">
                     <!-- Dinámico -->
@@ -806,7 +793,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
 
                 <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-800">
                     <button onclick="document.getElementById('step-preview').classList.add('hidden'); document.getElementById('step-input').classList.remove('hidden');" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Volver</button>
-                    <button onclick="guardarImportacionIA()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">💾 Confirmar y Guardar en la Nube</button>
+                    <button onclick="guardarImportacionLocal()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">💾 Confirmar y Guardar en la Nube</button>
                 </div>
             </div>
         </div>
