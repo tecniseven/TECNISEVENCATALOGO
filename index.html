@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=36" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=37" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -206,7 +206,7 @@
                         p.categoria = "Fan Coolers / Refr. Líquida";
                     }
                     if (p.enStock === undefined) {
-                        p.enStock = true; // Por defecto en stock si no está definido
+                        p.enStock = true;
                     }
                     if (p.final === undefined && p.base !== undefined) {
                         const m = Number(p.margen !== undefined ? p.margen : 20);
@@ -261,7 +261,52 @@
             }
         };
 
-        // LÓGICA DEL COTIZADOR Y PERFILES DE PC
+        // PLANTILLAS DE EJEMPLO DE ENSAMBLES (PRESETS RECOMENDADOS)
+        const presetsEjemplo = [
+            {
+                nombre: "🎮 PC Gamer Entrada ($500 - $600)",
+                monto: 550,
+                proposito: "Juegos Esports (LOL, Valorant, CS2, Fortnite) en 1080p",
+                detalles: "• CPU: Ryzen 5 5600G / Intel i3-12100F\n• GPU: Gráficos Vega o GTX 1650 / RTX 3050\n• Placa: B450 / H610M\n• RAM: 16GB (2x8GB) DDR4\n• SSD: 500GB NVMe\n• Fuente: 500W 80+"
+            },
+            {
+                nombre: "⚡ PC Gamer Calidad-Precio ($800 - $900)",
+                monto: 850,
+                proposito: "Juegos AAA en 1080p Ultra / 1440p Medio",
+                detalles: "• CPU: Ryzen 5 5600X / Intel i5-12400F\n• GPU: RTX 5060 / RTX 4060 / RX 6600\n• Placa: B550M / B760M\n• RAM: 16GB o 32GB DDR4\n• SSD: 1TB NVMe M.2\n• Fuente: 650W 80+ Bronze"
+            },
+            {
+                nombre: "🔥 PC Gamer / Stream Pro ($1200 - $1400)",
+                monto: 1300,
+                proposito: "Gaming 1440p High, Streaming y Edición de Video",
+                detalles: "• CPU: Ryzen 7 7700 / Ryzen 5 7600X\n• GPU: RTX 5070 / RTX 4070 / RX 7700 XT\n• Placa: B650M AM5\n• RAM: 32GB (2x16GB) DDR5 6000MHz\n• SSD: 1TB / 2TB Gen4\n• Cooler: Liquida 240mm / Fan Dual\n• Fuente: 750W 80+ Gold"
+            },
+            {
+                nombre: "🏢 PC Oficina / Hogar ($300 - $400)",
+                monto: 350,
+                proposito: "Trabajo administrativo, navegación, clases y punto de venta",
+                detalles: "• CPU: Intel Core i3 / AMD Athlon o Ryzen 3\n• Placa: H610M / A520M\n• RAM: 8GB o 16GB DDR4\n• SSD: 256GB / 512GB NVMe\n• Case con Fuente 500W"
+            }
+        ];
+
+        window.cargarPreset = (index) => {
+            const p = presetsEjemplo[index];
+            if (!p) return;
+            document.getElementById('input-presupuesto').value = p.monto;
+            document.getElementById('input-proposito').value = p.proposito;
+            
+            const areaSugerencias = document.getElementById('texto-sugerencia-preset');
+            if (areaSugerencias) {
+                areaSugerencias.innerHTML = `
+                    <div class="bg-slate-950 border border-cyan-500/50 p-3 rounded-xl text-xs space-y-1 mb-3">
+                        <span class="text-cyan-400 font-bold block">${p.nombre}</span>
+                        <pre class="text-slate-300 font-sans whitespace-pre-wrap leading-relaxed">${p.detalles}</pre>
+                    </div>
+                `;
+            }
+            calcularTotalPC();
+        };
+
         window.seleccionarPerfilPC = (monto, proposito) => {
             document.getElementById('input-presupuesto').value = monto;
             const inputProp = document.getElementById('input-proposito');
@@ -276,7 +321,6 @@
                 const valorActual = sel.value;
                 sel.innerHTML = `<option value="">-- Seleccionar ${catNombre} --</option>`;
 
-                // Solo mostrar productos que estén EN STOCK para armar cotizaciones reales
                 const filtrados = productos.filter(p => p.categoria === catNombre && p.enStock !== false);
                 filtrados.forEach(p => {
                     const precioVenta = Number(p.final || (p.base * 1.20)).toFixed(2);
@@ -396,7 +440,7 @@
 
             const containerResumen = document.getElementById('resumen-componentes-pc');
             if (containerResumen) {
-                containerResumen.innerHTML = resumenHTML || `<p class="text-slate-500 text-xs text-center py-6">No hay componentes seleccionados todavía.</p>`;
+                containerResumen.innerHTML = resumenHTML || `<p class="text-slate-500 text-xs text-center py-4">No hay componentes seleccionados aún.</p>`;
             }
 
             const totalEl = document.getElementById('total-precio-pc');
@@ -408,7 +452,7 @@
                 if (alertasComp.length > 0) {
                     contenedorAlertas.innerHTML = alertasComp.map(a => `<div class="bg-rose-950/60 border border-rose-900 text-rose-300 p-2.5 rounded-xl text-xs mb-2 font-medium">${a}</div>`).join('');
                 } else {
-                    contenedorAlertas.innerHTML = `<div class="bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 p-2.5 rounded-xl text-xs mb-2 font-medium">✅ Componentes compatibles verificados</div>`;
+                    contenedorAlertas.innerHTML = `<div class="bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 p-2 rounded-xl text-[11px] mb-2 font-medium">✅ Compatibilidad básica verificada</div>`;
                 }
             }
 
@@ -937,7 +981,7 @@
                     📦 Catálogo & Stock
                 </button>
                 <button id="btn-tab-cotizador" onclick="cambiarVistaTab('cotizador')" class="bg-slate-900 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 text-xs font-bold cursor-pointer transition hover:text-white">
-                    🖥️ Cotizador PC & Propósito
+                    🖥️ Cotizador PC & Ejemplos
                 </button>
                 <button onclick="cerrarSesion()" class="bg-rose-950/40 border border-rose-900/60 hover:bg-rose-900/60 text-rose-300 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
                     🔒 Salir
@@ -992,15 +1036,46 @@
             <div id="lista-productos"></div>
         </div>
 
-        <!-- SECCIÓN 2: COTIZADOR INTERNO DE PC CON PROPÓSITO Y STOCK -->
-        <div id="seccion-cotizador" class="hidden">
+        <!-- SECCIÓN 2: COTIZADOR INTERNO CON EJEMPLOS RECOMENDADOS -->
+        <div id="seccion-cotizador" class="hidden space-y-6">
+            
+            <!-- APARTADO DE EJEMPLOS Y PLANTILLAS RECOMENDADAS -->
+            <div class="bg-slate-900/80 border border-slate-700/80 rounded-3xl p-5 backdrop-blur-xl shadow-2xl">
+                <h3 class="text-sm font-bold text-cyan-400 cyber-title mb-3 flex items-center gap-2">
+                    <span>⭐</span> EJEMPLOS DE ENSAMBLES RECOMENDADOS (PRESETS DE GUÍA)
+                </h3>
+                <p class="text-slate-400 text-xs mb-4">Haz clic en cualquier perfil para cargar una recomendación rápida de piezas de referencia:</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <button onclick="cargarPreset(0)" class="text-left bg-slate-950 border border-slate-800 hover:border-cyan-400 p-3 rounded-2xl transition cursor-pointer group">
+                        <span class="text-xs font-bold text-white block group-hover:text-cyan-300">🎮 Gamer Entrada</span>
+                        <span class="text-[11px] text-cyan-400 font-mono font-bold">$500 - $600</span>
+                        <p class="text-[10px] text-slate-400 mt-1">Ideal para Esports (Valorant, CS2, Fortnite, LoL)</p>
+                    </button>
+                    <button onclick="cargarPreset(1)" class="text-left bg-slate-950 border border-slate-800 hover:border-cyan-400 p-3 rounded-2xl transition cursor-pointer group">
+                        <span class="text-xs font-bold text-white block group-hover:text-cyan-300">⚡ Calidad - Precio</span>
+                        <span class="text-[11px] text-cyan-400 font-mono font-bold">$800 - $900</span>
+                        <p class="text-[10px] text-slate-400 mt-1">Juegos AAA en 1080p Ultra / RTX Serie 40/50</p>
+                    </button>
+                    <button onclick="cargarPreset(2)" class="text-left bg-slate-950 border border-slate-800 hover:border-cyan-400 p-3 rounded-2xl transition cursor-pointer group">
+                        <span class="text-xs font-bold text-white block group-hover:text-cyan-300">🔥 High-End / Stream</span>
+                        <span class="text-[11px] text-cyan-400 font-mono font-bold">$1200 - $1400</span>
+                        <p class="text-[10px] text-slate-400 mt-1">Gaming 1440p, DDR5, Streaming y Edición</p>
+                    </button>
+                    <button onclick="cargarPreset(3)" class="text-left bg-slate-950 border border-slate-800 hover:border-cyan-400 p-3 rounded-2xl transition cursor-pointer group">
+                        <span class="text-xs font-bold text-white block group-hover:text-cyan-300">🏢 Oficina / Comercio</span>
+                        <span class="text-[11px] text-cyan-400 font-mono font-bold">$300 - $400</span>
+                        <p class="text-[10px] text-slate-400 mt-1">Trabajo rápido, almacenamiento SSD e i3/Ryzen 3</p>
+                    </button>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Selectores de Componentes -->
                 <div class="lg:col-span-2 bg-slate-900/80 border border-slate-700/80 rounded-3xl p-6 backdrop-blur-xl shadow-2xl space-y-4">
                     <h2 class="text-lg font-bold text-white flex items-center gap-2 cyber-title mb-2">
-                        <span>🛠️</span> Armador de Presupuesto para Cliente
+                        <span>🛠️</span> Armador de Presupuesto
                     </h2>
-                    <p class="text-slate-400 text-xs mb-4">Selecciona los componentes en stock. El sistema valida compatibilidad automáticamente:</p>
+                    <p class="text-slate-400 text-xs mb-4">Selecciona los productos activos en stock para calcular la cotización exacta:</p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -1047,15 +1122,8 @@
                     <div>
                         <h3 class="text-md font-bold text-white mb-3 cyber-title">📋 Resumen para Cotizar</h3>
 
-                        <!-- Accesos rápidos de presupuesto / propósito -->
-                        <div class="mb-3 bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                            <label class="text-[11px] text-cyan-400 font-mono block mb-1 font-bold">⚡ GUÍAS RÁPIDAS (PRESUPUESTO)</label>
-                            <div class="flex flex-wrap gap-1.5 mt-1">
-                                <button onclick="seleccionarPerfilPC(500, 'PC Gamer Económica ($500)')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] px-2.5 py-1 rounded-lg cursor-pointer">🎮 $500 Gamer</button>
-                                <button onclick="seleccionarPerfilPC(750, 'PC Gamer Media ($750)')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] px-2.5 py-1 rounded-lg cursor-pointer">⚡ $750 Media</button>
-                                <button onclick="seleccionarPerfilPC(1200, 'PC Gamer High-End ($1200)')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] px-2.5 py-1 rounded-lg cursor-pointer">🔥 $1200 Pro</button>
-                            </div>
-                        </div>
+                        <!-- Vista de preset cargado -->
+                        <div id="texto-sugerencia-preset"></div>
 
                         <!-- Alertas de compatibilidad dinámicas -->
                         <div id="alertas-compatibilidad"></div>
