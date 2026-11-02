@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=43" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=44" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -145,6 +145,12 @@
 
         const USUARIO_CORRECTO = "tecniseven";
         const PASS_CORRECTA = "iCloud480.";
+
+        const listaCategoriasDisponibles = [
+            'Procesadores', 'Tarjetas Gráficas', 'Placas Madre', 'Memorias RAM', 
+            'Fuentes de Poder', 'Fan Coolers / Refr. Líquida', 'Cases', 
+            'Almacenamiento', 'Monitores', 'Portátiles', 'Periféricos', 'Accesorios', 'General'
+        ];
 
         window.verificarSesionLocal = () => {
             const sesion = localStorage.getItem('tecniseven_logged');
@@ -625,7 +631,6 @@
             }
         };
 
-        // 1. COPIAR PARA CLIENTE (SIN PRECIOS)
         window.copiarCotizacionCliente = () => {
             let cliente = document.getElementById('input-cliente')?.value.trim() || 'Estimado Cliente';
             let proposito = document.getElementById('input-proposito')?.value.trim() || 'PC Gamer / Trabajo';
@@ -663,7 +668,6 @@
             alert("¡Cotización limpia (sin precios) copiada para el cliente!");
         };
 
-        // 2. COPIAR CON PRECIOS (PARA CONTROL INTERNO)
         window.copiarCotizacionInterna = () => {
             let cliente = document.getElementById('input-cliente')?.value.trim() || 'Cliente';
             let proposito = document.getElementById('input-proposito')?.value.trim() || 'PC Gamer / Trabajo';
@@ -755,8 +759,7 @@
                 const ultimaMod = p.ultimaModificacion ? `<span class="text-[11px] text-cyan-400 font-mono">🕒 ${p.ultimaModificacion}</span>` : `<span class="text-[11px] text-slate-400 font-mono">🕒 Sin cambios</span>`;
 
                 let optionsHTML = '';
-                const categoriasDisponibles = ['Procesadores', 'Tarjetas Gráficas', 'Placas Madre', 'Memorias RAM', 'Fuentes de Poder', 'Fan Coolers / Refr. Líquida', 'Cases', 'Almacenamiento', 'Monitores', 'Portátiles', 'Periféricos', 'Accesorios', 'General'];
-                categoriasDisponibles.forEach(cat => {
+                listaCategoriasDisponibles.forEach(cat => {
                     const selected = (p.categoria === cat) ? 'selected' : '';
                     optionsHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
                 });
@@ -1011,16 +1014,25 @@
             }
 
             productosTemporales.forEach((p, index) => {
+                let optionsPreviewHTML = '';
+                listaCategoriasDisponibles.forEach(cat => {
+                    const selected = (p.categoria === cat) ? 'selected' : '';
+                    optionsPreviewHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
+                });
+
                 const item = document.createElement('div');
                 item.className = 'bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3 flex flex-col gap-2';
                 item.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-mono text-cyan-400 font-bold">Ítem #${index + 1} (${p.categoria})</span>
+                        <span class="text-xs font-mono text-cyan-400 font-bold">Ítem #${index + 1}</span>
                         <button onclick="eliminarTemporal(${index})" class="text-rose-400 hover:text-rose-300 text-xs font-bold cursor-pointer">✕ Quitar</button>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                        <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold" placeholder="Nombre">
-                        <input type="text" value="${p.descripcion || ''}" onchange="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs" placeholder="Descripción">
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
+                        <input type="text" value="${p.nombre || ''}" onchange="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold sm:col-span-1" placeholder="Nombre">
+                        <select onchange="productosTemporales[${index}].categoria = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-medium sm:col-span-1">
+                            ${optionsPreviewHTML}
+                        </select>
+                        <input type="text" value="${p.descripcion || ''}" onchange="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs sm:col-span-1" placeholder="Descripción">
                         <input type="number" step="0.01" value="${p.base}" onchange="productosTemporales[${index}].base = parseFloat(this.value) || 0" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs font-mono" placeholder="Base $">
                         <input type="number" step="0.01" value="${p.final}" onchange="productosTemporales[${index}].final = parseFloat(this.value) || 0" class="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Venta $">
                     </div>
@@ -1376,12 +1388,12 @@
 
     <!-- MODAL DE PROCESAMIENTO RÁPIDO DE LISTAS -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2 cyber-title">
                 <span>📋</span> Procesador de Listas de Proveedor
             </h3>
             <p class="text-slate-400 text-xs mb-4">
-                Pega tus líneas de texto. El sistema limpiará el nombre, extraerá el precio y asignará su categoría de inmediato.
+                Pega tus líneas de texto. El sistema limpiará el nombre, extraerá el precio y podrás validar o corregir su categoría antes de guardar.
             </p>
 
             <div id="step-input" class="flex flex-col gap-4">
@@ -1396,7 +1408,7 @@
             </div>
 
             <div id="step-preview" class="hidden flex flex-col gap-4 flex-grow overflow-hidden">
-                <p class="text-xs text-cyan-300 font-mono">👁️ Revisa los productos extraídos antes de enviarlos a la nube:</p>
+                <p class="text-xs text-cyan-300 font-mono">👁️ Revisa y selecciona la categoría correcta de cada producto antes de enviarlos a la nube:</p>
                 <div id="lista-preview" class="overflow-y-auto max-h-[50vh] pr-2 space-y-2"></div>
                 <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-800">
                     <button onclick="document.getElementById('step-preview').classList.add('hidden'); document.getElementById('step-input').classList.remove('hidden');" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Volver</button>
