@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=42" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=43" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -625,10 +625,49 @@
             }
         };
 
-        window.copiarCotizacionPC = () => {
+        // 1. COPIAR PARA CLIENTE (SIN PRECIOS)
+        window.copiarCotizacionCliente = () => {
+            let cliente = document.getElementById('input-cliente')?.value.trim() || 'Estimado Cliente';
+            let proposito = document.getElementById('input-proposito')?.value.trim() || 'PC Gamer / Trabajo';
+            let texto = `🔥 COTIZACIÓN TECNISEVEN 🔥\n• Cliente: ${cliente}\n• Detalle: ${proposito}\n\n*COMPONENTES DE LA PC:*\n`;
+
+            const slotsNombres = {
+                procesador: 'CPU',
+                tarjetaGrafica: 'GPU',
+                placaMadre: 'Placa Madre',
+                memoriaRam: 'RAM',
+                fuentePoder: 'Fuente',
+                refrigeracion: 'Cooler',
+                case: 'Case',
+                almacenamiento: 'SSD',
+                monitor: 'Monitor'
+            };
+
+            let hayElementos = false;
+            Object.keys(pcArmada).forEach(slot => {
+                const item = pcArmada[slot];
+                if (item) {
+                    hayElementos = true;
+                    let notaStock = (item.enStock === false || String(item.id).startsWith('virtual_')) ? ' (⚠️ Bajo pedido)' : '';
+                    texto += `• ${slotsNombres[slot]}: ${item.nombre}${notaStock}\n`;
+                }
+            });
+
+            if (!hayElementos) {
+                alert("No hay componentes seleccionados para copiar.");
+                return;
+            }
+
+            texto += `\n¡Contáctanos para apartar tu equipo o personalizarlo a tu medida!`;
+            navigator.clipboard.writeText(texto);
+            alert("¡Cotización limpia (sin precios) copiada para el cliente!");
+        };
+
+        // 2. COPIAR CON PRECIOS (PARA CONTROL INTERNO)
+        window.copiarCotizacionInterna = () => {
             let cliente = document.getElementById('input-cliente')?.value.trim() || 'Cliente';
             let proposito = document.getElementById('input-proposito')?.value.trim() || 'PC Gamer / Trabajo';
-            let texto = `🔥 COTIZACIÓN TECNISEVEN 🔥\n• Cliente: ${cliente}\n• Detalle: ${proposito}\n\n`;
+            let texto = `🔥 COTIZACIÓN INTERNA TECNISEVEN 🔥\n• Cliente: ${cliente}\n• Detalle: ${proposito}\n\n`;
             let total = 0;
 
             const slotsNombres = {
@@ -653,9 +692,9 @@
                 }
             });
 
-            texto += `\n💰 TOTAL ESTIMADO: $${total.toFixed(2)}`;
+            texto += `\n💰 TOTAL NETO: $${total.toFixed(2)}`;
             navigator.clipboard.writeText(texto);
-            alert("¡Cotización copiada al portapapeles lista para enviar por WhatsApp!");
+            alert("¡Cotización con precios copiada para uso interno!");
         };
 
         window.filtrarPorCategoria = (cat) => {
@@ -1311,16 +1350,23 @@
                             <div id="alerta-presupuesto"></div>
                         </div>
 
-                        <div id="resumen-componentes-pc" class="space-y-2 mb-4 max-h-[38vh] overflow-y-auto pr-1"></div>
+                        <div id="resumen-componentes-pc" class="space-y-2 mb-4 max-h-[35vh] overflow-y-auto pr-1"></div>
                     </div>
 
-                    <div class="pt-4 border-t border-slate-800">
-                        <div class="flex justify-between items-center mb-4">
+                    <div class="pt-4 border-t border-slate-800 space-y-2.5">
+                        <div class="flex justify-between items-center mb-2">
                             <span class="text-sm font-bold text-slate-300">TOTAL NETO:</span>
                             <span id="total-precio-pc" class="text-xl font-mono font-black text-cyan-300">$0.00</span>
                         </div>
-                        <button onclick="copiarCotizacionPC()" style="background-color: #2323ff;" class="w-full hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer text-xs uppercase tracking-wider">
-                            📋 Copiar para WhatsApp
+                        
+                        <!-- BOTÓN PARA CLIENTE (SIN PRECIOS) -->
+                        <button onclick="copiarCotizacionCliente()" style="background-color: #2323ff;" class="w-full hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                            👤 Copiar para Cliente (Sin Precios)
+                        </button>
+
+                        <!-- BOTÓN INTERNO (CON PRECIOS Y TOTAL) -->
+                        <button onclick="copiarCotizacionInterna()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 py-2.5 rounded-xl font-bold transition cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                            📊 Copiar con Precios (Interno)
                         </button>
                     </div>
                 </div>
