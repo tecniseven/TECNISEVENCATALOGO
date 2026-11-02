@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TECNISEVEN - Catálogo en la Nube</title>
+    <title>TECNISEVEN - Gestión y Cotizador Interno</title>
     
     <!-- FUENTES MODERNAS Y LEGIBLES -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=32" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=34" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -99,7 +99,7 @@
         .bar-container {
             box-shadow: 0 0 25px rgba(0, 255, 255, 0.7), 0 0 50px rgba(35, 35, 255, 0.8);
         }
-        .cat-btn-active {
+        .cat-btn-active, .tab-btn-active {
             background-color: #2323ff !important;
             color: #ffffff !important;
             border-color: #00ffff !important;
@@ -131,6 +131,17 @@
         let productosTemporales = [];
         let categoriaFiltroSeleccionada = 'TODOS';
         let isUserTyping = false;
+        let pcArmada = {
+            procesador: null,
+            tarjetaGrafica: null,
+            placaMadre: null,
+            memoriaRam: null,
+            fuentePoder: null,
+            refrigeracion: null,
+            case: null,
+            almacenamiento: null,
+            monitor: null
+        };
 
         const USUARIO_CORRECTO = "tecniseven";
         const PASS_CORRECTA = "iCloud480.";
@@ -204,6 +215,9 @@
             if (!isUserTyping) {
                 renderizar();
             }
+            if (document.getElementById('seccion-cotizador') && !document.getElementById('seccion-cotizador').classList.contains('hidden')) {
+                actualizarSelectoresCotizador();
+            }
             window.ocultarLoader();
         });
 
@@ -220,9 +234,162 @@
             return ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         };
 
+        window.cambiarVistaTab = (tab) => {
+            const secCatalogo = document.getElementById('seccion-catalogo');
+            const secCotizador = document.getElementById('seccion-cotizador');
+            const btnCat = document.getElementById('btn-tab-catalogo');
+            const btnCot = document.getElementById('btn-tab-cotizador');
+
+            if (tab === 'catalogo') {
+                secCatalogo.classList.remove('hidden');
+                secCotizador.classList.add('hidden');
+                btnCat.classList.add('tab-btn-active');
+                btnCat.classList.remove('bg-slate-900', 'text-slate-300');
+                btnCot.classList.remove('tab-btn-active');
+                btnCot.classList.add('bg-slate-900', 'text-slate-300');
+            } else {
+                secCatalogo.classList.add('hidden');
+                secCotizador.classList.remove('hidden');
+                btnCot.classList.add('tab-btn-active');
+                btnCot.classList.remove('bg-slate-900', 'text-slate-300');
+                btnCat.classList.remove('tab-btn-active');
+                btnCat.classList.add('bg-slate-900', 'text-slate-300');
+                actualizarSelectoresCotizador();
+            }
+        };
+
+        // LÓGICA DEL COTIZADOR INTERNO
+        window.actualizarSelectoresCotizador = () => {
+            const llenarSelect = (catNombre, selectId, slotKey) => {
+                const sel = document.getElementById(selectId);
+                if (!sel) return;
+                const valorActual = sel.value;
+                sel.innerHTML = `<option value="">-- Seleccionar ${catNombre} --</option>`;
+
+                const filtrados = productos.filter(p => p.categoria === catNombre);
+                filtrados.forEach(p => {
+                    const precioVenta = Number(p.final || (p.base * 1.20)).toFixed(2);
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = `${p.nombre} ($${precioVenta})`;
+                    if (valorActual === p.id) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            };
+
+            llenarSelect('Procesadores', 'select-procesador', 'procesador');
+            llenarSelect('Tarjetas Gráficas', 'select-gpu', 'tarjetaGrafica');
+            llenarSelect('Placas Madre', 'select-placa', 'placaMadre');
+            llenarSelect('Memorias RAM', 'select-ram', 'memoriaRam');
+            llenarSelect('Fuentes de Poder', 'select-fuente', 'fuentePoder');
+            llenarSelect('Fan Coolers / Refr. Líquida', 'select-refr', 'refrigeracion');
+            llenarSelect('Cases', 'select-case', 'case');
+            llenarSelect('Almacenamiento', 'select-almacenamiento', 'almacenamiento');
+            llenarSelect('Monitores', 'select-monitor', 'monitor');
+
+            calcularTotalPC();
+        };
+
+        window.seleccionarComponente = (slot, prodId) => {
+            if (!prodId) {
+                pcArmada[slot] = null;
+            } else {
+                const prod = productos.find(p => p.id === prodId);
+                pcArmada[slot] = prod || null;
+            }
+            calcularTotalPC();
+        };
+
+        window.calcularTotalPC = () => {
+            let total = 0;
+            let resumenHTML = '';
+
+            const slotsNombres = {
+                procesador: 'Procesador (CPU)',
+                tarjetaGrafica: 'Tarjeta Gráfica (GPU)',
+                placaMadre: 'Placa Madre',
+                memoriaRam: 'Memoria RAM',
+                fuentePoder: 'Fuente de Poder',
+                refrigeracion: 'Refrigeración / Fan',
+                case: 'Case (Gabinete)',
+                almacenamiento: 'Almacenamiento (SSD/HDD)',
+                monitor: 'Monitor'
+            };
+
+            Object.keys(pcArmada).forEach(slot => {
+                const item = pcArmada[slot];
+                if (item) {
+                    const precio = Number(item.final || (item.base * 1.20));
+                    total += precio;
+                    resumenHTML += `
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+                            <div>
+                                <span class="text-cyan-400 font-bold block">${slotsNombres[slot]}</span>
+                                <span class="text-slate-200">${item.nombre}</span>
+                            </div>
+                            <span class="font-mono font-bold text-cyan-300">$${precio.toFixed(2)}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            const containerResumen = document.getElementById('resumen-componentes-pc');
+            if (containerResumen) {
+                containerResumen.innerHTML = resumenHTML || `<p class="text-slate-500 text-xs text-center py-6">No hay componentes seleccionados todavía.</p>`;
+            }
+
+            const totalEl = document.getElementById('total-precio-pc');
+            if (totalEl) totalEl.innerText = `$${total.toFixed(2)}`;
+
+            const presupuestoInput = Number(document.getElementById('input-presupuesto')?.value || 0);
+            const alertaPresupuesto = document.getElementById('alerta-presupuesto');
+            if (alertaPresupuesto && presupuestoInput > 0) {
+                if (total > presupuestoInput) {
+                    alertaPresupuesto.innerHTML = `⚠️ El total ($${total.toFixed(2)}) supera el presupuesto de $${presupuestoInput.toFixed(2)}`;
+                    alertaPresupuesto.className = "text-rose-400 text-xs mt-2 font-semibold";
+                } else {
+                    const restante = presupuestoInput - total;
+                    alertaPresupuesto.innerHTML = `✅ Dentro del presupuesto. Restante: $${restante.toFixed(2)}`;
+                    alertaPresupuesto.className = "text-emerald-400 text-xs mt-2 font-semibold";
+                }
+            } else if (alertaPresupuesto) {
+                alertaPresupuesto.innerHTML = "";
+            }
+        };
+
+        window.copiarCotizacionPC = () => {
+            let cliente = document.getElementById('input-cliente')?.value.trim() || 'Cliente';
+            let texto = `🔥 COTIZACIÓN TECNISEVEN 🔥\n• Para: ${cliente}\n\n`;
+            let total = 0;
+
+            const slotsNombres = {
+                procesador: 'CPU',
+                tarjetaGrafica: 'GPU',
+                placaMadre: 'Placa Madre',
+                memoriaRam: 'RAM',
+                fuentePoder: 'Fuente',
+                refrigeracion: 'Cooler',
+                case: 'Case',
+                almacenamiento: 'SSD',
+                monitor: 'Monitor'
+            };
+
+            Object.keys(pcArmada).forEach(slot => {
+                const item = pcArmada[slot];
+                if (item) {
+                    const precio = Number(item.final || (item.base * 1.20));
+                    total += precio;
+                    texto += `• ${slotsNombres[slot]}: ${item.nombre} - $${precio.toFixed(2)}\n`;
+                }
+            });
+
+            texto += `\n💰 TOTAL ESTIMADO: $${total.toFixed(2)}`;
+            navigator.clipboard.writeText(texto);
+            alert("¡Cotización copiada al portapapeles lista para enviar por WhatsApp!");
+        };
+
         window.filtrarPorCategoria = (cat) => {
             categoriaFiltroSeleccionada = cat;
-            
             const botones = document.querySelectorAll('.btn-cat-filter');
             botones.forEach(btn => {
                 if (btn.getAttribute('data-cat') === cat) {
@@ -233,7 +400,6 @@
                     btn.classList.add('bg-slate-900/90', 'text-slate-300');
                 }
             });
-
             renderizar();
         };
 
@@ -304,7 +470,6 @@
                         </div>
                     </div>
 
-                    <!-- Fila de Descripción Corta -->
                     <div class="mb-4">
                         <input type="text" value="${p.descripcion || ''}" 
                             onfocus="isUserTyping = true" 
@@ -446,7 +611,6 @@
             }
         };
 
-        // PARSER LOCAL DIRECTO (SIN IA / SIN ERRORES DE API)
         window.analizarTextoLocal = () => {
             const rawText = document.getElementById('texto-pegado').value.trim();
             if (!rawText) {
@@ -461,7 +625,6 @@
                 let l = linea.trim();
                 if (!l) return;
 
-                // Extraer el precio (último monto con signo $ o valor numérico con coma/punto)
                 let precioBase = 0;
                 const matchPrecio = l.match(/\$\s*(\d+[.,]?\d*)|(\d+[.,]\d{2})/g);
                 if (matchPrecio && matchPrecio.length > 0) {
@@ -469,13 +632,11 @@
                     precioBase = parseFloat(ultPrecio.replace('$', '').replace(',', '.').trim()) || 0;
                 }
 
-                // Limpieza del nombre (remover palabras innecesarias al inicio como PROCESADOR, CPU, etc.)
                 let nombreLimpio = l
                     .replace(/^(PROCESADOR|CPU|MONITOR|FUENTE|MEMORIA|PLACA|MOTHERBOARD|CASE|COOLER)\s+/i, '')
                     .replace(/\$\s*\d+[.,]?\d*/g, '')
                     .trim();
 
-                // Auto-clasificación por palabras clave
                 let categoria = 'General';
                 const lUpper = l.toUpperCase();
                 if (lUpper.includes('RYZEN') || lUpper.includes('INTEL') || lUpper.includes('CORE') || lUpper.includes('SOCKET') || lUpper.includes('AM4') || lUpper.includes('AM5')) {
@@ -644,7 +805,7 @@
             <div class="text-center mb-6">
                 <img src="Logo.png" alt="Logo TECNISEVEN" class="h-20 w-auto object-contain mx-auto mb-4 rounded-2xl bg-slate-950 border border-cyan-400/50 p-2" onerror="this.onerror=null; this.src='logo.png';">
                 <h2 class="text-2xl font-black tracking-wider text-white cyber-title">TECNISEVEN</h2>
-                <p class="text-cyan-400 text-xs font-mono tracking-wider mt-1">ACCESO RESTRINGIDO</p>
+                <p class="text-cyan-400 text-xs font-mono tracking-wider mt-1">ACCESO RESTRINGIDO (INTERNO)</p>
             </div>
 
             <form onsubmit="iniciarSesion(event)" class="space-y-4">
@@ -660,7 +821,7 @@
                 <div id="login-error" class="hidden text-rose-400 text-xs text-center font-medium bg-rose-950/40 border border-rose-900 p-2.5 rounded-xl"></div>
 
                 <button type="submit" style="background-color: #2323ff;" class="w-full hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer text-xs tracking-wider uppercase">
-                    Ingresar al Catálogo
+                    Ingresar al Sistema
                 </button>
             </form>
         </div>
@@ -674,104 +835,166 @@
                 <img src="Logo.png" alt="Logo TECNISEVEN" class="h-16 sm:h-20 w-auto object-contain rounded-2xl bg-slate-950 border border-cyan-400/40 p-2 neon-glow" onerror="this.onerror=null; this.src='logo.png';">
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white cyber-title">
-                        TECNISEVEN <span class="text-cyan-400 font-light">| Catálogo Nube</span>
+                        TECNISEVEN <span class="text-cyan-400 font-light">| Panel Interno</span>
                     </h1>
-                    <p class="text-slate-400 mt-1 text-xs sm:text-sm">Control avanzado de precios y sincronización en tiempo real.</p>
+                    <p class="text-slate-400 mt-1 text-xs sm:text-sm">Gestión de inventario y cotizador rápido de PCs.</p>
                 </div>
             </div>
             
-            <!-- Botones de Acción -->
+            <!-- Botones de Pestañas Internas y Salida -->
             <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
-                <button onclick="exportarExcel()" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
-                    📊 Exportar Excel
+                <button id="btn-tab-catalogo" onclick="cambiarVistaTab('catalogo')" class="tab-btn-active px-4 py-2.5 rounded-xl border border-slate-700 text-xs font-bold cursor-pointer transition">
+                    📦 Catálogo & Precios
                 </button>
-                
-                <button onclick="toggleModalImportacion(true)" class="flex-1 sm:flex-none bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
-                    📋 Pegar Lista
+                <button id="btn-tab-cotizador" onclick="cambiarVistaTab('cotizador')" class="bg-slate-900 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 text-xs font-bold cursor-pointer transition hover:text-white">
+                    🖥️ Cotizador Interno PC
                 </button>
-
-                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="w-full sm:w-auto hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg neon-glow cursor-pointer text-xs">
-                    + Nuevo Producto
-                </button>
-
                 <button onclick="cerrarSesion()" class="bg-rose-950/40 border border-rose-900/60 hover:bg-rose-900/60 text-rose-300 px-4 py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-md backdrop-blur-md">
                     🔒 Salir
                 </button>
             </div>
         </div>
 
-        <!-- FILTROS RÁPIDOS POR CATEGORÍA -->
-        <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-3 rounded-2xl border border-slate-800 backdrop-blur-md">
-            <span class="text-[11px] font-semibold text-cyan-400 mr-2">FILTRAR POR:</span>
-            <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition">
-                🌐 Todos
-            </button>
-            <button onclick="filtrarPorCategoria('Procesadores')" data-cat="Procesadores" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                🧠 Procesadores
-            </button>
-            <button onclick="filtrarPorCategoria('Tarjetas Gráficas')" data-cat="Tarjetas Gráficas" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                ⚡ Tarjetas Gráficas
-            </button>
-            <button onclick="filtrarPorCategoria('Placas Madre')" data-cat="Placas Madre" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                🧬 Placas Madre
-            </button>
-            <button onclick="filtrarPorCategoria('Memorias RAM')" data-cat="Memorias RAM" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                ⚡ Memorias RAM
-            </button>
-            <button onclick="filtrarPorCategoria('Fuentes de Poder')" data-cat="Fuentes de Poder" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                🔌 Fuentes de Poder
-            </button>
-            <button onclick="filtrarPorCategoria('Fan Coolers / Refr. Líquida')" data-cat="Fan Coolers / Refr. Líquida" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                ❄️ Fan Coolers / Refr. Líquida
-            </button>
-            <button onclick="filtrarPorCategoria('Cases')" data-cat="Cases" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                🏛️ Cases
-            </button>
-            <button onclick="filtrarPorCategoria('Almacenamiento')" data-cat="Almacenamiento" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                💾 Almacenamiento
-            </button>
-            <button onclick="filtrarPorCategoria('Monitores')" data-cat="Monitores" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                🖥️ Monitores
-            </button>
-            <button onclick="filtrarPorCategoria('Portátiles')" data-cat="Portátiles" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                💻 Portátiles
-            </button>
-            <button onclick="filtrarPorCategoria('Periféricos')" data-cat="Periféricos" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                ⌨️ Periféricos
-            </button>
-            <button onclick="filtrarPorCategoria('General')" data-cat="General" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">
-                📦 General
-            </button>
+        <!-- SECCIÓN 1: CATÁLOGO DE PRODUCTOS -->
+        <div id="seccion-catalogo">
+            <div class="flex flex-wrap gap-2.5 mb-4">
+                <button onclick="exportarExcel()" class="bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 cursor-pointer text-xs shadow-md">
+                    📊 Exportar Excel
+                </button>
+                <button onclick="toggleModalImportacion(true)" class="bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-2 cursor-pointer text-xs shadow-md">
+                    📋 Pegar Lista
+                </button>
+                <button onclick="agregarProducto()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg neon-glow cursor-pointer text-xs">
+                    + Nuevo Producto
+                </button>
+            </div>
+
+            <!-- FILTROS RÁPIDOS POR CATEGORÍA -->
+            <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-3 rounded-2xl border border-slate-800 backdrop-blur-md">
+                <span class="text-[11px] font-semibold text-cyan-400 mr-2">FILTRAR:</span>
+                <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition">🌐 Todos</button>
+                <button onclick="filtrarPorCategoria('Procesadores')" data-cat="Procesadores" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">🧠 Procesadores</button>
+                <button onclick="filtrarPorCategoria('Tarjetas Gráficas')" data-cat="Tarjetas Gráficas" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">⚡ Tarjetas Gráficas</button>
+                <button onclick="filtrarPorCategoria('Placas Madre')" data-cat="Placas Madre" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">🧬 Placas Madre</button>
+                <button onclick="filtrarPorCategoria('Memorias RAM')" data-cat="Memorias RAM" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">⚡ Memorias RAM</button>
+                <button onclick="filtrarPorCategoria('Fuentes de Poder')" data-cat="Fuentes de Poder" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">🔌 Fuentes de Poder</button>
+                <button onclick="filtrarPorCategoria('Fan Coolers / Refr. Líquida')" data-cat="Fan Coolers / Refr. Líquida" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">❄️ Fan Coolers / Refr. Líquida</button>
+                <button onclick="filtrarPorCategoria('Cases')" data-cat="Cases" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">🏛️ Cases</button>
+                <button onclick="filtrarPorCategoria('Almacenamiento')" data-cat="Almacenamiento" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">💾 Almacenamiento</button>
+                <button onclick="filtrarPorCategoria('Monitores')" data-cat="Monitores" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">🖥️ Monitores</button>
+                <button onclick="filtrarPorCategoria('Portátiles')" data-cat="Portátiles" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">💻 Portátiles</button>
+                <button onclick="filtrarPorCategoria('Periféricos')" data-cat="Periféricos" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">⌨️ Periféricos</button>
+                <button onclick="filtrarPorCategoria('General')" data-cat="General" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">📦 General</button>
+            </div>
+
+            <!-- Buscador -->
+            <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-700 backdrop-blur-md shadow-lg">
+                <div class="relative w-full sm:w-96">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyan-400">🔍</span>
+                    <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU, descripción..." class="bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-xs focus:border-cyan-400">
+                </div>
+                <div class="text-slate-300 text-xs text-right w-full sm:w-auto">
+                    Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
+                </div>
+            </div>
+
+            <!-- Contenedor Principal de Productos -->
+            <div id="lista-productos"></div>
         </div>
 
-        <!-- Buscador -->
-        <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-700 backdrop-blur-md shadow-lg">
-            <div class="relative w-full sm:w-96">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyan-400">🔍</span>
-                <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU, descripción..." class="bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-xs focus:border-cyan-400">
-            </div>
-            <div class="text-slate-300 text-xs text-right w-full sm:w-auto">
-                Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
-            </div>
-        </div>
+        <!-- SECCIÓN 2: COTIZADOR INTERNO DE PC -->
+        <div id="seccion-cotizador" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Selectores de Componentes -->
+                <div class="lg:col-span-2 bg-slate-900/80 border border-slate-700/80 rounded-3xl p-6 backdrop-blur-xl shadow-2xl space-y-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2 cyber-title mb-2">
+                        <span>🛠️</span> Armador de Presupuesto para Cliente
+                    </h2>
+                    <p class="text-slate-400 text-xs mb-4">Selecciona los componentes disponibles en tu inventario para generar la cotización:</p>
 
-        <!-- Contenedor Principal de Productos -->
-        <div id="lista-productos">
-            <!-- Carga dinámica -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">🧠 PROCESADOR (CPU)</label>
+                            <select id="select-procesador" onchange="seleccionarComponente('procesador', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">⚡ TARJETA GRÁFICA (GPU)</label>
+                            <select id="select-gpu" onchange="seleccionarComponente('tarjetaGrafica', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">🧬 PLACA MADRE (MOTHERBOARD)</label>
+                            <select id="select-placa" onchange="seleccionarComponente('placaMadre', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">⚡ MEMORIA RAM</label>
+                            <select id="select-ram" onchange="seleccionarComponente('memoriaRam', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">🔌 FUENTE DE PODER</label>
+                            <select id="select-fuente" onchange="seleccionarComponente('fuentePoder', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">❄️ REFRIGERACIÓN / FAN</label>
+                            <select id="select-refr" onchange="seleccionarComponente('refrigeracion', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">🏛️ CASE (GABINETE)</label>
+                            <select id="select-case" onchange="seleccionarComponente('case', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">💾 ALMACENAMIENTO (SSD/HDD)</label>
+                            <select id="select-almacenamiento" onchange="seleccionarComponente('almacenamiento', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="text-xs text-cyan-400 font-bold block mb-1">🖥️ MONITOR (Opcional)</label>
+                            <select id="select-monitor" onchange="seleccionarComponente('monitor', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen y Datos de Cliente -->
+                <div class="bg-slate-900/90 border border-slate-700/80 rounded-3xl p-6 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-md font-bold text-white mb-3 cyber-title">📋 Resumen para Cotizar</h3>
+
+                        <div class="mb-3">
+                            <label class="text-[11px] text-slate-400 block mb-1 font-mono">NOMBRE DEL CLIENTE</label>
+                            <input type="text" id="input-cliente" placeholder="Ej: Juan Pérez" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-[11px] text-slate-400 block mb-1 font-mono">PRESUPUESTO MÁXIMO ($)</label>
+                            <input type="number" id="input-presupuesto" oninput="calcularTotalPC()" placeholder="Ej: 1000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs font-mono">
+                            <div id="alerta-presupuesto"></div>
+                        </div>
+
+                        <div id="resumen-componentes-pc" class="space-y-2 mb-4 max-h-[30vh] overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-sm font-bold text-slate-300">TOTAL NETO:</span>
+                            <span id="total-precio-pc" class="text-xl font-mono font-black text-cyan-300">$0.00</span>
+                        </div>
+                        <button onclick="copiarCotizacionPC()" style="background-color: #2323ff;" class="w-full hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-lg neon-glow cursor-pointer text-xs uppercase tracking-wider">
+                            📋 Copiar para WhatsApp
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- VENTANA EMERGENTE (MODAL) DE PROCESAMIENTO RÁPIDO DE LISTAS -->
+    <!-- MODAL DE PROCESAMIENTO RÁPIDO DE LISTAS -->
     <div id="modal-importar" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2 cyber-title">
                 <span>📋</span> Procesador de Listas de Proveedor
             </h3>
             <p class="text-slate-400 text-xs mb-4">
-                Pega tus líneas de texto. El sistema limpiará el nombre del producto, extraerá el precio y clasificará automáticamente la categoría.
+                Pega tus líneas de texto. El sistema limpiará el nombre, extraerá el precio y asignará su categoría de inmediato.
             </p>
 
-            <!-- PASO 1: ENTRADA DE TEXTO -->
             <div id="step-input" class="flex flex-col gap-4">
                 <div>
                     <label class="text-xs text-cyan-400 font-mono block mb-1">LISTA DE PRODUCTOS Y PRECIOS</label>
@@ -783,14 +1006,9 @@
                 </div>
             </div>
 
-            <!-- PASO 2: VISTA PREVIA Y CONFIRMACIÓN -->
             <div id="step-preview" class="hidden flex flex-col gap-4 flex-grow overflow-hidden">
                 <p class="text-xs text-cyan-300 font-mono">👁️ Revisa los productos extraídos antes de enviarlos a la nube:</p>
-                
-                <div id="lista-preview" class="overflow-y-auto max-h-[50vh] pr-2 space-y-2">
-                    <!-- Dinámico -->
-                </div>
-
+                <div id="lista-preview" class="overflow-y-auto max-h-[50vh] pr-2 space-y-2"></div>
                 <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-800">
                     <button onclick="document.getElementById('step-preview').classList.add('hidden'); document.getElementById('step-input').classList.remove('hidden');" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Volver</button>
                     <button onclick="guardarImportacionLocal()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">💾 Confirmar y Guardar en la Nube</button>
