@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=27" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=28" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -186,7 +186,6 @@
             if (data) {
                 Object.keys(data).forEach(key => {
                     let p = data[key];
-                    // Compatibilidad con datos antiguos o migración de la categoría de Refrigeración
                     if (p.categoria === "Refrigeración") {
                         p.categoria = "Fan Coolers / Refr. Líquida";
                     }
@@ -475,7 +474,8 @@ ${texto}
 Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdown alrededor ni texto adicional.`;
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                // Actualizado al modelo estándar actual compatible
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -694,7 +694,7 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
             </div>
         </div>
 
-        <!-- FILTROS RÁPIDOS POR CATEGORÍA CON EL NOMBRE COMBINADO -->
+        <!-- FILTROS RÁPIDOS POR CATEGORÍA -->
         <div class="mb-4 flex flex-wrap gap-2 items-center bg-slate-900/50 p-3 rounded-2xl border border-slate-800 backdrop-blur-md">
             <span class="text-[10px] font-mono text-cyan-400 mr-2 font-bold">FILTRAR POR:</span>
             <button onclick="filtrarPorCategoria('TODOS')" data-cat="TODOS" class="btn-cat-filter cat-btn-active px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition">
@@ -772,8 +772,8 @@ Responde ÚNICAMENTE con el formato JSON válido, sin bloques de código markdow
                     <input type="password" id="gemini-api-key" placeholder="Pega tu API Key de Google AI Studio..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
-                    <textarea id="texto-pegado" rows="6" placeholder="Ej: Fan Cooler RGB 3 pack $35 - Enfriamiento liquido AIO 360mm $110..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
+                    <label class="text-xs text-cyan-400 font-mono block mb-1">LISTA DESORDENADA DEL PROVEEDOR</label>
+                    <textarea id="texto-pegado" rows="6" placeholder="Pega aquí los procesadores u otros componentes..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-mono text-xs focus:border-cyan-400"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 mt-2">
                     <button onclick="toggleModalImportacion(false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Cancelar</button>
