@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=50" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=51" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -268,7 +268,23 @@
             }
         };
 
-        // AUTO-ARMADO ESTRICTO Y COMPATIBLE AM5 / AM4
+        window.toggleUsoGrafica = () => {
+            const usarGpu = document.getElementById('check-usar-gpu')?.value;
+            const containerGpu = document.getElementById('container-select-gpu');
+            if (containerGpu) {
+                if (usarGpu === 'si') {
+                    containerGpu.classList.remove('hidden');
+                } else {
+                    containerGpu.classList.add('hidden');
+                    pcArmada.tarjetaGrafica = null;
+                    const selGpu = document.getElementById('select-gpu');
+                    if (selGpu) selGpu.value = '';
+                    calcularTotalPC();
+                }
+            }
+        };
+
+        // AUTO-ARMADO ROBUSTO
         window.autoArmarPorProcesador = () => {
             const textoBuscado = (document.getElementById('input-auto-cpu')?.value || '').trim();
             if (!textoBuscado) {
@@ -567,6 +583,55 @@
             return alertas;
         };
 
+        // EXPLICACIONES TÉCNICAS EXTENSAS (EL POR QUÉ DE CADA COSA)
+        const obtenerExplicacionTecnica = (slot, item) => {
+            const nombre = (item.nombre || '').toUpperCase();
+            const desc = (item.descripcion || '').toUpperCase();
+
+            switch(slot) {
+                case 'procesador':
+                    if (nombre.includes('9600') || nombre.includes('7600') || nombre.includes('AM5') || nombre.includes('7000') || nombre.includes('9000')) {
+                        return "• Por qué: Arquitectura AM5 de alto rendimiento. Ofrece soporte para memoria DDR5 y gran velocidad en multitarea y gaming sin cuellos de botella.";
+                    } else if (nombre.includes('3200G') || nombre.includes('5600G') || nombre.includes('4600G') || nombre.includes('G')) {
+                        return "• Por qué: Incluye gráficos integrados Radeon Vega, permitiendo jugar títulos esports y trabajar de inmediato sin necesidad de una tarjeta gráfica dedicada.";
+                    }
+                    return "• Por qué: Equilibrio óptimo de núcleos e hilos para garantizar fluidez en las aplicaciones y tareas principales del equipo.";
+
+                case 'tarjetaGrafica':
+                    return "• Por qué: Tarjeta gráfica dedicada seleccionada para procesamiento visual pesado, renderizado y ejecución de juegos AAA en configuraciones gráficas elevadas.";
+
+                case 'placaMadre':
+                    if (nombre.includes('B650') || nombre.includes('X670') || nombre.includes('AM5')) {
+                        return "• Por qué: Chipset avanzado AM5 con fases de poder estables, ranuras PCIe 4.0/5.0 y soporte nativo para alta velocidad DDR5.";
+                    }
+                    return "• Por qué: Placa base estable con disipación adecuada para los vatios del procesador y expansión de puertos USB y almacenamiento.";
+
+                case 'memoriaRam':
+                    if (nombre.includes('DDR5')) {
+                        return "• Por qué: Kit en configuración Dual Channel DDR5 de alta velocidad. Ancho de banda superior indispensable para la arquitectura moderna.";
+                    }
+                    return "• Por qué: 16GB o más en doble canal (Dual Channel), garantizando fluidez en multitarea pesada y evitando micro-tardanzas en juegos.";
+
+                case 'fuentePoder':
+                    return "• Por qué: Seleccionada con potencia de sobra (Watts reales) y certificaciones de protección (80 Plus). Esto asegura estabilidad eléctrica ante picos de consumo de la GPU/CPU y alarga la vida útil de todo el hardware.";
+
+                case 'refrigeracion':
+                    return "• Por qué: Disipador eficiente capaz de mantener las temperaturas del procesador en rangos seguros durante sesiones prolongadas de juego o trabajo intenso.";
+
+                case 'case':
+                    return "• Por qué: Gabinete con excelente flujo de aire, espacio interno suficiente para tarjetas gráficas grandes y gestión limpia de cables.";
+
+                case 'almacenamiento':
+                    return "• Por qué: Unidad SSD NVMe M.2 de alta velocidad de lectura/escritura. Reduce los tiempos de arranque del sistema operativo y carga juegos o programas de forma instantánea.";
+
+                case 'monitor':
+                    return "• Por qué: Pantalla con tasa de actualización fluida y definición nítida para aprovechar al máximo los cuadros por segundo (FPS) del equipo.";
+
+                default:
+                    return "• Por qué: Componente seleccionado para asegurar la máxima sinergia del equipo.";
+            }
+        };
+
         window.calcularTotalPC = () => {
             let total = 0;
             let resumenHTML = '';
@@ -594,14 +659,17 @@
                         badgeStock = `<span class="text-[10px] text-amber-400 font-mono font-bold">⚠️ Fuera de Inventario (Por pedido)</span>`;
                     }
 
+                    const explicacionDetallada = obtenerExplicacionTecnica(slot, item);
+
                     resumenHTML += `
-                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
-                            <div>
-                                <span class="text-cyan-400 font-bold block">${slotsNombres[slot]}</span>
-                                <span class="text-slate-200">${item.nombre}</span>
-                                <div class="mt-0.5">${badgeStock}</div>
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-cyan-400 font-bold">${slotsNombres[slot]}</span>
+                                <span class="font-mono font-bold text-cyan-300">$${precio.toFixed(2)}</span>
                             </div>
-                            <span class="font-mono font-bold text-cyan-300">$${precio.toFixed(2)}</span>
+                            <div class="text-slate-200 font-semibold">${item.nombre}</div>
+                            <div class="text-[11px] text-slate-400 italic bg-slate-900/60 p-1.5 rounded border border-slate-800/80">${explicacionDetallada}</div>
+                            <div class="mt-0.5">${badgeStock}</div>
                         </div>
                     `;
                 }
@@ -644,7 +712,7 @@
         window.copiarCotizacionCliente = () => {
             let cliente = document.getElementById('input-cliente')?.value.trim() || 'Estimado Cliente';
             let proposito = document.getElementById('input-proposito')?.value.trim() || 'PC Gamer / Trabajo';
-            let texto = `🔥 COTIZACIÓN TECNISEVEN 🔥\n• Cliente: ${cliente}\n• Detalle: ${proposito}\n\n*COMPONENTES DE LA PC:*\n`;
+            let texto = `🔥 COTIZACIÓN TECNISEVEN 🔥\n• Cliente: ${cliente}\n• Detalle: ${proposito}\n\n*COMPONENTES Y ESPECIFICACIONES:*\n`;
 
             const slotsNombres = {
                 procesador: 'CPU',
@@ -664,7 +732,8 @@
                 if (item) {
                     hayElementos = true;
                     let notaStock = (item.enStock === false || String(item.id).startsWith('virtual_')) ? ' (⚠️ Bajo pedido)' : '';
-                    texto += `• ${slotsNombres[slot]}: ${item.nombre}${notaStock}\n`;
+                    let explicacion = obtenerExplicacionTecnica(slot, item);
+                    texto += `• ${slotsNombres[slot]}: ${item.nombre}${notaStock}\n  ${explicacion}\n`;
                 }
             });
 
@@ -675,7 +744,7 @@
 
             texto += `\n¡Contáctanos para apartar tu equipo o personalizarlo a tu medida!`;
             navigator.clipboard.writeText(texto);
-            alert("¡Cotización limpia (sin precios) copiada para el cliente!");
+            alert("¡Cotización detallada y explicada copiada para el cliente!");
         };
 
         window.copiarCotizacionInterna = () => {
@@ -702,13 +771,14 @@
                     const precio = Number(item.final || (item.base * 1.20));
                     total += precio;
                     let notaStock = (item.enStock === false || String(item.id).startsWith('virtual_')) ? ' (⚠️ Bajo pedido)' : '';
-                    texto += `• ${slotsNombres[slot]}: ${item.nombre} - $${precio.toFixed(2)}${notaStock}\n`;
+                    let explicacion = obtenerExplicacionTecnica(slot, item);
+                    texto += `• ${slotsNombres[slot]}: ${item.nombre} - $${precio.toFixed(2)}${notaStock}\n  ${explicacion}\n`;
                 }
             });
 
             texto += `\n💰 TOTAL NETO: $${total.toFixed(2)}`;
             navigator.clipboard.writeText(texto);
-            alert("¡Cotización con precios copiada para uso interno!");
+            alert("¡Cotización interna con precios y explicaciones copiada!");
         };
 
         window.filtrarPorCategoria = (cat) => {
@@ -747,7 +817,6 @@
                 return coincideTexto && coincideCategoria;
             });
 
-            // LÓGICA DE ORDENAMIENTO
             listaFiltrada.sort((a, b) => {
                 if (criterioOrdenamiento === 'sku_asc') {
                     return (a.sku || '').localeCompare(b.sku || '');
@@ -1017,7 +1086,6 @@
                 }
 
                 if (nombreLimpio) {
-                    // Aviso visual si ya existe en la nube
                     const yaExiste = productos.some(prod => (prod.nombre || '').trim().toLowerCase() === nombreLimpio.toLowerCase());
                     if (yaExiste) {
                         duplicadosDetectadosCount++;
@@ -1381,15 +1449,30 @@
                     </h2>
                     <p class="text-slate-400 text-xs mb-4">Selecciona los componentes para armar la cotización (se indica cuáles están en stock):</p>
 
+                    <!-- SELECTOR DE GRÁFICA SÍ / NO -->
+                    <div class="bg-slate-950 border border-cyan-500/40 p-3.5 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-3">
+                        <div>
+                            <span class="text-xs font-bold text-cyan-300 block">⚡ ¿LLEVA TARJETA GRÁFICA DEDICADA (GPU)?</span>
+                            <span class="text-[11px] text-slate-400">Elige "No" si usarás solo gráficos integrados (ej: Ryzen G).</span>
+                        </div>
+                        <select id="check-usar-gpu" onchange="toggleUsoGrafica()" class="bg-slate-900 border border-cyan-500 rounded-xl px-3 py-2 text-cyan-300 font-bold text-xs w-full sm:w-40">
+                            <option value="si">✅ Sí (Dedicada)</option>
+                            <option value="no">❌ No (Integrados)</option>
+                        </select>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="text-xs text-cyan-400 font-bold block mb-1">🧠 PROCESADOR (CPU)</label>
                             <select id="select-procesador" onchange="seleccionarComponente('procesador', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
                         </div>
-                        <div>
+                        
+                        <!-- CONTENEDOR TARJETA GRÁFICA -->
+                        <div id="container-select-gpu">
                             <label class="text-xs text-cyan-400 font-bold block mb-1">⚡ TARJETA GRÁFICA (GPU)</label>
                             <select id="select-gpu" onchange="seleccionarComponente('tarjetaGrafica', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
                         </div>
+
                         <div>
                             <label class="text-xs text-cyan-400 font-bold block mb-1">🧬 PLACA MADRE (MOTHERBOARD)</label>
                             <select id="select-placa" onchange="seleccionarComponente('placaMadre', this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-200 text-xs w-full"></select>
@@ -1445,7 +1528,7 @@
                             <div id="alerta-presupuesto"></div>
                         </div>
 
-                        <div id="resumen-componentes-pc" class="space-y-2 mb-4 max-h-[35vh] overflow-y-auto pr-1"></div>
+                        <div id="resumen-componentes-pc" class="space-y-2.5 mb-4 max-h-[38vh] overflow-y-auto pr-1"></div>
                     </div>
 
                     <div class="pt-4 border-t border-slate-800 space-y-2.5">
