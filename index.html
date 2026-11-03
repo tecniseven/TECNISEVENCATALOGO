@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=47" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=48" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -285,7 +285,6 @@
             });
 
             if (!cpuEncontrada) {
-                // Detectar si es AM5 por nomenclatura común (9000, 8000, 7000, X3D, 9600X, etc)
                 const esAm5Detectado = textoUpper.includes('9000') || textoUpper.includes('8000') || textoUpper.includes('7000') || textoUpper.includes('9600') || textoUpper.includes('7600') || textoUpper.includes('9800');
                 cpuEncontrada = {
                     id: 'virtual_cpu_' + Date.now(),
@@ -306,7 +305,7 @@
             const esAm5 = cpuTexto.includes('AM5') || cpuTexto.includes('7000') || cpuTexto.includes('8000') || cpuTexto.includes('9000') || cpuTexto.includes('9600') || cpuTexto.includes('7600') || cpuTexto.includes('8700G') || cpuTexto.includes('9800');
             const esAm4 = cpuTexto.includes('AM4') || cpuTexto.includes('5000') || cpuTexto.includes('4000') || cpuTexto.includes('3000') || cpuTexto.includes('3200G') || cpuTexto.includes('5600G') || cpuTexto.includes('4600G');
 
-            // 1. PLACA MADRE ESTRICTA SEGÚN SOCKET
+            // 1. PLACA MADRE
             const placas = productos.filter(p => p.categoria === 'Placas Madre');
             let placaEmparejada = null;
             if (esAm5) {
@@ -337,7 +336,7 @@
             const selPlaca = document.getElementById('select-placa');
             if (selPlaca) selPlaca.value = placaEmparejada.enStock ? placaEmparejada.id : '';
 
-            // 2. MEMORIA RAM ESTRICTA SEGÚN SOCKET (DDR5 para AM5, DDR4 para AM4)
+            // 2. MEMORIA RAM
             const rams = productos.filter(p => p.categoria === 'Memorias RAM');
             let ramEmparejada = null;
             if (esAm5) {
@@ -350,7 +349,7 @@
                 ramEmparejada = {
                     id: 'virtual_ram_' + Date.now(),
                     nombre: esAm5 ? 'Memoria RAM DDR5 16GB (2x8GB) 5600MHz' : 'Memoria RAM DDR4 16GB (2x8GB) 3200MHz',
-                    descripcion: esAm5 ? 'Kit Dual Channel DDR5 de alta velocidad' : 'Kit Dual Channel DDR4',
+                    descripcion: esAm5 ? 'Kit Dual Channel DDR5' : 'Kit Dual Channel DDR4',
                     categoria: 'Memorias RAM',
                     base: esAm5 ? 65.00 : 45.00,
                     final: esAm5 ? 80.00 : 55.00,
@@ -362,7 +361,7 @@
             const selRam = document.getElementById('select-ram');
             if (selRam) selRam.value = ramEmparejada.enStock ? ramEmparejada.id : '';
 
-            // 3. ALMACENAMIENTO (SSD NVMe)
+            // 3. ALMACENAMIENTO
             const ssdDisponibles = productos.filter(p => p.categoria === 'Almacenamiento');
             let ssdEmparejado = ssdDisponibles.find(p => p.enStock !== false) || ssdDisponibles[0];
             if (!ssdEmparejado) {
@@ -565,14 +564,10 @@
                 const ramTexto = (ram.nombre + ' ' + ram.descripcion).toUpperCase();
 
                 const esCpuAm5 = cpuTexto.includes('AM5') || cpuTexto.includes('7000') || cpuTexto.includes('8000') || cpuTexto.includes('9000') || cpuTexto.includes('9600') || cpuTexto.includes('7600');
-                const esRamDdr5 = ramTexto.includes('DDR5');
                 const esRamDdr4 = ramTexto.includes('DDR4');
 
                 if (esCpuAm5 && esRamDdr4) {
                     alertas.push("⚠️ Incompatibilidad de Memoria: Los procesadores AM5 requieren memoria RAM DDR5 obligatoriamente.");
-                }
-                if (!esCpuAm5 && esRamDdr5 && cpuTexto.includes('AM4')) {
-                    alertas.push("⚠️ Incompatibilidad de Memoria: Los procesadores AM4 requieren memoria RAM DDR4.");
                 }
             }
 
@@ -633,7 +628,7 @@
                 if (alertasComp.length > 0) {
                     contenedorAlertas.innerHTML = alertasComp.map(a => `<div class="bg-rose-950/80 border border-rose-900 text-rose-300 p-2.5 rounded-xl text-xs mb-2 font-semibold shadow-lg">${a}</div>`).join('');
                 } else {
-                    contenedorAlertas.innerHTML = `<div class="bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 p-2 rounded-xl text-[11px] mb-2 font-medium">✅ Compatibilidad verificada (AM5 / DDR5)</div>`;
+                    contenedorAlertas.innerHTML = `<div class="bg-emerald-950/40 border border-emerald-900/60 text-emerald-300 p-2 rounded-xl text-[11px] mb-2 font-medium">✅ Compatibilidad verificada</div>`;
                 }
             }
 
@@ -1026,6 +1021,23 @@
             document.getElementById('step-preview').classList.remove('hidden');
         };
 
+        // FUNCIONES DE EDICIÓN DIRECTA EN VISTA PREVIA
+        window.actualizarCampoTemp = (index, campo, valor) => {
+            if (productosTemporales[index]) {
+                if (campo === 'base') {
+                    const baseVal = parseFloat(valor) || 0;
+                    productosTemporales[index].base = baseVal;
+                    productosTemporales[index].final = parseFloat((baseVal * 1.20).toFixed(2));
+                    const elFinal = document.getElementById(`temp_final_${index}`);
+                    if (elFinal) elFinal.value = productosTemporales[index].final;
+                } else if (campo === 'final') {
+                    productosTemporales[index].final = parseFloat(valor) || 0;
+                } else {
+                    productosTemporales[index][campo] = valor;
+                }
+            }
+        };
+
         window.renderizarVistaPreviaLocal = () => {
             const container = document.getElementById('lista-preview');
             container.innerHTML = '';
@@ -1050,13 +1062,13 @@
                         <button onclick="eliminarTemporal(${index})" class="text-rose-400 hover:text-rose-300 text-xs font-bold cursor-pointer">✕ Quitar</button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
-                        <input type="text" value="${p.nombre || ''}" oninput="productosTemporales[${index}].nombre = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold sm:col-span-1" placeholder="Nombre">
-                        <select onchange="productosTemporales[${index}].categoria = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-medium sm:col-span-1">
+                        <input type="text" value="${p.nombre || ''}" oninput="actualizarCampoTemp(${index}, 'nombre', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-bold sm:col-span-1" placeholder="Nombre">
+                        <select onchange="actualizarCampoTemp(${index}, 'categoria', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-medium sm:col-span-1">
                             ${optionsPreviewHTML}
                         </select>
-                        <input type="text" value="${p.descripcion || ''}" oninput="productosTemporales[${index}].descripcion = this.value" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs sm:col-span-1" placeholder="Descripción">
-                        <input type="number" step="0.01" value="${p.base}" oninput="productosTemporales[${index}].base = parseFloat(this.value) || 0; productosTemporales[${index}].final = parseFloat((productosTemporales[${index}].base * 1.20).toFixed(2)); document.getElementById('temp_final_${index}').value = productosTemporales[${index}].final;" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs font-mono" placeholder="Base $">
-                        <input type="number" step="0.01" id="temp_final_${index}" value="${p.final}" oninput="productosTemporales[${index}].final = parseFloat(this.value) || 0" class="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Venta $">
+                        <input type="text" value="${p.descripcion || ''}" oninput="actualizarCampoTemp(${index}, 'descripcion', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs sm:col-span-1" placeholder="Descripción">
+                        <input type="number" step="0.01" value="${p.base}" oninput="actualizarCampoTemp(${index}, 'base', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 text-xs font-mono" placeholder="Base $">
+                        <input type="number" step="0.01" id="temp_final_${index}" value="${p.final}" oninput="actualizarCampoTemp(${index}, 'final', this.value)" class="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs font-mono font-bold" placeholder="Venta $">
                     </div>
                 `;
                 container.appendChild(item);
