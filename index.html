@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=48" id="favicon-link">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg?v=50" id="favicon-link">
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
@@ -130,6 +130,7 @@
         let productos = [];
         let productosTemporales = [];
         let categoriaFiltroSeleccionada = 'TODOS';
+        let criterioOrdenamiento = 'sku_asc';
         let isUserTyping = false;
         let pcArmada = {
             procesador: null,
@@ -485,13 +486,6 @@
             }
         };
 
-        window.seleccionarPerfilPC = (monto, proposito) => {
-            document.getElementById('input-presupuesto').value = monto;
-            const inputProp = document.getElementById('input-proposito');
-            if (inputProp) inputProp.value = proposito;
-            calcularTotalPC();
-        };
-
         window.actualizarSelectoresCotizador = () => {
             const llenarSelect = (catNombre, selectId) => {
                 const sel = document.getElementById(selectId);
@@ -534,7 +528,6 @@
             calcularTotalPC();
         };
 
-        // VALIDADOR DE COMPATIBILIDAD ROBUSTO (SOCKETS Y RAM)
         window.verificarCompatibilidad = () => {
             let alertas = [];
             const cpu = pcArmada.procesador;
@@ -733,6 +726,11 @@
             renderizar();
         };
 
+        window.cambiarOrden = (criterio) => {
+            criterioOrdenamiento = criterio;
+            renderizar();
+        };
+
         window.renderizar = () => {
             if (isUserTyping) return;
 
@@ -749,7 +747,19 @@
                 return coincideTexto && coincideCategoria;
             });
 
-            listaFiltrada.sort((a, b) => (a.sku || '').localeCompare(b.sku || ''));
+            // LÓGICA DE ORDENAMIENTO
+            listaFiltrada.sort((a, b) => {
+                if (criterioOrdenamiento === 'sku_asc') {
+                    return (a.sku || '').localeCompare(b.sku || '');
+                } else if (criterioOrdenamiento === 'nombre_asc') {
+                    return (a.nombre || '').localeCompare(b.nombre || '');
+                } else if (criterioOrdenamiento === 'precio_asc') {
+                    return Number(a.final || a.base || 0) - Number(b.final || b.base || 0);
+                } else if (criterioOrdenamiento === 'precio_desc') {
+                    return Number(b.final || b.base || 0) - Number(a.final || a.base || 0);
+                }
+                return 0;
+            });
 
             const contador = document.getElementById('contador-productos');
             if (contador) contador.innerText = listaFiltrada.length;
@@ -966,6 +976,8 @@
             const lineas = rawText.split('\n');
             productosTemporales = [];
 
+            let duplicadosDetectadosCount = 0;
+
             lineas.forEach(linea => {
                 let l = linea.trim();
                 if (!l) return;
@@ -1005,23 +1017,40 @@
                 }
 
                 if (nombreLimpio) {
+                    // Aviso visual si ya existe en la nube
+                    const yaExiste = productos.some(prod => (prod.nombre || '').trim().toLowerCase() === nombreLimpio.toLowerCase());
+                    if (yaExiste) {
+                        duplicadosDetectadosCount++;
+                    }
+
                     productosTemporales.push({
                         nombre: nombreLimpio,
-                        descripcion: 'Especificaciones clave',
+                        descripcion: yaExiste ? '⚠️ Ya existe en el catálogo (Se actualizará si confirmas)' : 'Especificaciones clave',
                         categoria: categoria,
                         base: precioBase,
                         final: parseFloat((precioBase * 1.20).toFixed(2)),
-                        enStock: true
+                        enStock: true,
+                        esDuplicado: yaExiste
                     });
                 }
             });
+
+            if (duplicadosDetectadosCount > 0) {
+                const avisoDuplicado = document.getElementById('aviso-duplicados-modal');
+                if (avisoDuplicado) {
+                    avisoDuplicado.innerHTML = `⚠️ Se detectaron ${duplicadosDetectadosCount} productos que ya existen en tu catálogo. Puedes revisarlos antes de guardar.`;
+                    avisoDuplicado.classList.remove('hidden');
+                }
+            } else {
+                const avisoDuplicado = document.getElementById('aviso-duplicados-modal');
+                if (avisoDuplicado) avisoDuplicado.classList.add('hidden');
+            }
 
             renderizarVistaPreviaLocal();
             document.getElementById('step-input').classList.add('hidden');
             document.getElementById('step-preview').classList.remove('hidden');
         };
 
-        // FUNCIONES DE EDICIÓN DIRECTA EN VISTA PREVIA
         window.actualizarCampoTemp = (index, campo, valor) => {
             if (productosTemporales[index]) {
                 if (campo === 'base') {
@@ -1054,11 +1083,16 @@
                     optionsPreviewHTML += `<option value="${cat}" ${selected} class="bg-slate-900 text-slate-100">${cat}</option>`;
                 });
 
+                let badgeDuplicado = p.esDuplicado ? `<span class="bg-amber-950 text-amber-300 border border-amber-800 text-[10px] px-2 py-0.5 rounded font-mono font-bold">⚠️ Coincide con producto existente</span>` : `<span class="text-[10px] text-emerald-400 font-mono">✨ Producto nuevo</span>`;
+
                 const item = document.createElement('div');
                 item.className = 'bg-slate-950 border border-slate-700 rounded-xl p-3 mb-3 flex flex-col gap-2';
                 item.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-mono text-cyan-400 font-bold">Ítem #${index + 1}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-mono text-cyan-400 font-bold">Ítem #${index + 1}</span>
+                            ${badgeDuplicado}
+                        </div>
                         <button onclick="eliminarTemporal(${index})" class="text-rose-400 hover:text-rose-300 text-xs font-bold cursor-pointer">✕ Quitar</button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
@@ -1087,16 +1121,19 @@
             }
 
             productosTemporales.forEach((p, i) => {
-                let id = 'prod_' + Date.now() + '_' + i;
-                let sku = `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
+                const nombreLimpio = (p.nombre || '').trim();
+                const existente = productos.find(prod => (prod.nombre || '').trim().toLowerCase() === nombreLimpio.toLowerCase());
+
+                let id = existente ? existente.id : ('prod_' + Date.now() + '_' + i);
+                let sku = existente ? existente.sku : `TEC-${Math.floor(1000 + Math.random() * 9000)}`;
                 let baseVal = Number(p.base) || 0;
                 let finalVal = Number(p.final) || (baseVal * 1.20);
 
                 let productoNuevo = {
                     id,
                     sku,
-                    nombre: p.nombre || 'Producto sin nombre',
-                    descripcion: p.descripcion || '',
+                    nombre: nombreLimpio || 'Producto sin nombre',
+                    descripcion: p.descripcion || (existente ? existente.descripcion : ''),
                     categoria: p.categoria || 'General',
                     base: baseVal,
                     final: finalVal,
@@ -1106,7 +1143,7 @@
                 window.guardarProductoNube(productoNuevo);
             });
 
-            alert(`¡Se han procesado y guardado ${productosTemporales.length} productos en la nube!`);
+            alert(`¡Se procesaron y guardaron ${productosTemporales.length} productos correctamente!`);
             productosTemporales = [];
             document.getElementById('texto-pegado').value = '';
             toggleModalImportacion(false);
@@ -1260,12 +1297,24 @@
                 <button onclick="filtrarPorCategoria('General')" data-cat="General" class="btn-cat-filter bg-slate-900/90 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-semibold cursor-pointer transition hover:text-white">📦 General</button>
             </div>
 
-            <!-- Buscador -->
+            <!-- Buscador y Selector de Ordenamiento -->
             <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/70 p-4 rounded-2xl border border-slate-700 backdrop-blur-md shadow-lg">
-                <div class="relative w-full sm:w-96">
+                <div class="relative w-full sm:w-80">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-cyan-400">🔍</span>
                     <input type="text" id="buscador" oninput="renderizar()" placeholder="Buscar por producto, SKU, descripción..." class="bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 w-full text-white text-xs focus:border-cyan-400">
                 </div>
+
+                <!-- SELECTOR DE ORDENAMIENTO -->
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <span class="text-[11px] font-semibold text-cyan-400 whitespace-nowrap">ORDENAR POR:</span>
+                    <select onchange="cambiarOrden(this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs font-medium w-full sm:w-auto">
+                        <option value="sku_asc">🔢 SKU (Alfabético)</option>
+                        <option value="nombre_asc">🔤 Nombre del Producto (A-Z)</option>
+                        <option value="precio_asc">💲 Precio de Venta (Menor a Mayor)</option>
+                        <option value="precio_desc">💲 Precio de Venta (Mayor a Menor)</option>
+                    </select>
+                </div>
+
                 <div class="text-slate-300 text-xs text-right w-full sm:w-auto">
                     Mostrando <span id="contador-productos" class="text-cyan-400 font-bold">0</span> productos activos
                 </div>
@@ -1427,7 +1476,7 @@
                 <span>📋</span> Procesador de Listas de Proveedor
             </h3>
             <p class="text-slate-400 text-xs mb-4">
-                Pega tus líneas de texto. El sistema limpiará el nombre, extraerá el precio y podrás validar o corregir su categoría antes de guardar.
+                Pega tus líneas de texto. El sistema limpiará el nombre, extraerá el precio y te avisará si detecta coincidencias para que tú decidas.
             </p>
 
             <div id="step-input" class="flex flex-col gap-4">
@@ -1442,11 +1491,12 @@
             </div>
 
             <div id="step-preview" class="hidden flex flex-col gap-4 flex-grow overflow-hidden">
-                <p class="text-xs text-cyan-300 font-mono">👁️ Revisa y selecciona la categoría correcta de cada producto antes de enviarlos a la nube:</p>
-                <div id="lista-preview" class="overflow-y-auto max-h-[50vh] pr-2 space-y-2"></div>
+                <div id="aviso-duplicados-modal" class="hidden bg-amber-950/80 border border-amber-900 text-amber-300 p-2.5 rounded-xl text-xs font-semibold"></div>
+                <p class="text-xs text-cyan-300 font-mono">👁️ Revisa los ítems. Los marcados en amarillo coinciden con productos que ya tienes guardados:</p>
+                <div id="lista-preview" class="overflow-y-auto max-h-[45vh] pr-2 space-y-2"></div>
                 <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-800">
                     <button onclick="document.getElementById('step-preview').classList.add('hidden'); document.getElementById('step-input').classList.remove('hidden');" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer">Volver</button>
-                    <button onclick="guardarImportacionLocal()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">💾 Confirmar y Guardar en la Nube</button>
+                    <button onclick="guardarImportacionLocal()" style="background-color: #2323ff;" class="hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg neon-glow cursor-pointer">💾 Guardar Cambios en la Nube</button>
                 </div>
             </div>
         </div>
